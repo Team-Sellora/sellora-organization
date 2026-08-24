@@ -3,14 +3,14 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Configuration ---
+// Configuration
 var jwt = builder.Configuration.GetSection("Jwt");
 var authority = jwt["Authority"]!;
 var metadataAddress = jwt["MetadataAddress"]!;
 var issuer = jwt["Issuer"]!;
 var audience = jwt["Audience"]!;
 
-// --- JWT bearer authentication ---
+// JWT bearer authentication
 // Validates every incoming token against Identity Server's JWKS:
 // signature (via keys fetched from JWKS), issuer, audience, and lifetime.
 builder.Services
