@@ -116,3 +116,12 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\obj\Debug\net8.0\Sellora.CoreService.Tests.pdb
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\obj\Debug\net8.0\Sellora.CoreService.Tests.genruntimeconfig.cache
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\obj\Debug\net8.0\ref\Sellora.CoreService.Tests.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\obj\Debug\net8.0\Sellora.CoreService.Tests.sourcelink.json

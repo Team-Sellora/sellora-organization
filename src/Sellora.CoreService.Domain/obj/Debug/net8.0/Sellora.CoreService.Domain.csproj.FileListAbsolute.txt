@@ -9,3 +9,4 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Domain\obj\Debug\net8.0\refint\Sellora.CoreService.Domain.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Domain\obj\Debug\net8.0\Sellora.CoreService.Domain.pdb
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Domain\obj\Debug\net8.0\ref\Sellora.CoreService.Domain.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Domain\obj\Debug\net8.0\Sellora.CoreService.Domain.sourcelink.json

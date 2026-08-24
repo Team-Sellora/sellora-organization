@@ -37,3 +37,12 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\obj\Debug\net8.0\Sellora.CoreService.Api.pdb
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\obj\Debug\net8.0\Sellora.CoreService.Api.genruntimeconfig.cache
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\obj\Debug\net8.0\ref\Sellora.CoreService.Api.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\obj\Debug\net8.0\Sellora.CoreService.Api.sourcelink.json
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
