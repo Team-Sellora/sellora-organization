@@ -1,13 +1,58 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// --- Configuration ---
+var jwt = builder.Configuration.GetSection("Jwt");
+var authority = jwt["Authority"]!;
+var metadataAddress = jwt["MetadataAddress"]!;
+var issuer = jwt["Issuer"]!;
+var audience = jwt["Audience"]!;
+
+// --- JWT bearer authentication ---
+// Validates every incoming token against Identity Server's JWKS:
+// signature (via keys fetched from JWKS), issuer, audience, and lifetime.
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = authority;
+        options.MetadataAddress = metadataAddress;
+        options.Audience = audience;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = issuer,
+            ValidateAudience = true,
+            ValidAudience = audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+
+        // DEV ONLY: Identity Server uses a self-signed cert, so the metadata/JWKS
+        // fetch over HTTPS would fail cert validation. Bypass it in Development.
+        // In production this must be removed and a trusted cert used.
+        if (builder.Environment.IsDevelopment())
+        {
+            options.RequireHttpsMetadata = false;
+            options.BackchannelHttpHandler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            };
+        }
+    });
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,29 +61,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Order matters: authentication before authorization.
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.MapGet("/weatherforecast", () =>
+// Temporary probe endpoint to prove JWT validation works.
+// Returns 401 without a valid token, 200 with one.
+app.MapGet("/whoami", (HttpContext ctx) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var name = ctx.User.Identity?.Name ?? "(no name claim)";
+    var claims = ctx.User.Claims.Select(c => new { c.Type, c.Value });
+    return Results.Ok(new { name, claims });
 })
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+.RequireAuthorization();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+// Exposes the implicit Program class to the test project (WebApplicationFactory).
+public partial class Program { }
