@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "Sellora.CoreService.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Sellora.CoreService.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Sellora.CoreService.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Sellora.CoreService.Application.dll": {}
+        }
+      },
+      "Sellora.CoreService.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Sellora.CoreService.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Sellora.CoreService.Domain.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Sellora.CoreService.Application/1.0.0": {
+      "type": "project",
+      "path": "../Sellora.CoreService.Application/Sellora.CoreService.Application.csproj",
+      "msbuildProject": "../Sellora.CoreService.Application/Sellora.CoreService.Application.csproj"
+    },
+    "Sellora.CoreService.Domain/1.0.0": {
+      "type": "project",
+      "path": "../Sellora.CoreService.Domain/Sellora.CoreService.Domain.csproj",
+      "msbuildProject": "../Sellora.CoreService.Domain/Sellora.CoreService.Domain.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "Sellora.CoreService.Application >= 1.0.0",
+      "Sellora.CoreService.Domain >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\Gayuth\\.nuget\\packages\\": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Infrastructure\\Sellora.CoreService.Infrastructure.csproj",
+      "projectName": "Sellora.CoreService.Infrastructure",
+      "projectPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Infrastructure\\Sellora.CoreService.Infrastructure.csproj",
+      "packagesPath": "C:\\Users\\Gayuth\\.nuget\\packages\\",
+      "outputPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Infrastructure\\obj\\",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "C:\\Users\\Gayuth\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj": {
+              "projectPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj"
+            },
+            "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Domain\\Sellora.CoreService.Domain.csproj": {
+              "projectPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Domain\\Sellora.CoreService.Domain.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      }
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.424/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

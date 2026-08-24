@@ -1,0 +1,56 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Sellora.CoreService.Infrastructure/1.0.0": {
+        "dependencies": {
+          "Sellora.CoreService.Application": "1.0.0",
+          "Sellora.CoreService.Domain": "1.0.0"
+        },
+        "runtime": {
+          "Sellora.CoreService.Infrastructure.dll": {}
+        }
+      },
+      "Sellora.CoreService.Application/1.0.0": {
+        "dependencies": {
+          "Sellora.CoreService.Domain": "1.0.0"
+        },
+        "runtime": {
+          "Sellora.CoreService.Application.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Sellora.CoreService.Domain/1.0.0": {
+        "runtime": {
+          "Sellora.CoreService.Domain.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Sellora.CoreService.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Sellora.CoreService.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Sellora.CoreService.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
