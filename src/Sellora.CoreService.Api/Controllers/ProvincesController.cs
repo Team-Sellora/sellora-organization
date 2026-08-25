@@ -18,23 +18,16 @@ public sealed class ProvincesController : ControllerBase
   }
 
   /// <summary>
-  /// Assigns an Area Manager to a province.
-  /// Restricted to CompanyAdmin by the endpoint policy. The service enforces
-  /// the two data-level guards the policy cannot — the target exists in the
-  /// caller's company and holds the AreaManager role.
+  /// Assigns an Area Manager to a province. Restricted to CompanyAdmin.
+  /// Reassignment ends the prior active assignment and creates the new one
+  /// in a single transaction, keeping exactly one active row per province.
   /// </summary>
   [HttpPut("{provinceId:guid}/area-manager")]
   [Authorize(Policy = RolePolicies.RequireCompanyAdmin)]
   [ProducesResponseType(StatusCodes.Status200OK)]
-  [ProducesResponseType(
-    typeof(ProblemDetails),
-    StatusCodes.Status400BadRequest)]
-  [ProducesResponseType(
-    typeof(ProblemDetails),
-    StatusCodes.Status404NotFound)]
-  [ProducesResponseType(
-    typeof(ProblemDetails),
-    StatusCodes.Status409Conflict)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
   public async Task<IActionResult> AssignAreaManager(
     Guid provinceId,
     [FromBody] AssignAreaManagerRequestBody body,
@@ -50,9 +43,7 @@ public sealed class ProvincesController : ControllerBase
       });
     }
 
-    var request = new AssignAreaManagerRequest(
-      provinceId,
-      body.AreaManagerId);
+    var request = new AssignAreaManagerRequest(provinceId, body.AreaManagerId);
 
     var result = await _assignments.AssignAreaManagerAsync(
       request,
@@ -75,11 +66,11 @@ public sealed class ProvincesController : ControllerBase
         Detail = result.Message
       }),
 
-      AssignAreaManagerOutcome.ProvinceAlreadyHasActiveManager =>
+      AssignAreaManagerOutcome.TargetAlreadyManagesAnotherProvince =>
         Conflict(new ProblemDetails
         {
           Status = StatusCodes.Status409Conflict,
-          Title = "Province already has an active manager",
+          Title = "Target already manages another province",
           Detail = result.Message
         }),
 
