@@ -85,7 +85,11 @@ builder.Host.UseSerilog((context, config) =>
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
