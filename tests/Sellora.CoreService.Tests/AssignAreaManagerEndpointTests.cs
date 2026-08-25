@@ -232,4 +232,38 @@ public sealed class AssignAreaManagerEndpointTests
     var activeCount = history.Count(a => a.EndsAt == null);
     Assert.Equal(1, activeCount);
   }
+
+  // 409 — Target already manages another province
+  [Fact]
+  public async Task Put_TargetAlreadyManagesAnotherProvince_Returns409()
+  {
+    var provinceA = SeedNewProvince("PA");
+    var provinceB = SeedNewProvince("PB");
+    var manager = SeedNewStaff(Roles.AreaManager, "cross-province-mgr");
+
+    var assignA = await PutAsync(provinceA, manager, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.OK, assignA.StatusCode);
+
+    var assignB = await PutAsync(provinceB, manager, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.Conflict, assignB.StatusCode);
+
+    // The error names the other province so the admin sees where the user
+    // is already assigned, not just that it failed.
+    var body = await assignB.Content.ReadAsStringAsync();
+    Assert.Contains(provinceA.ToString(), body);
+
+    // No assignment was written for province B.
+    using var scope = _factory.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+    var countB = await db.ProvinceManagerAssignments
+      .IgnoreQueryFilters()
+      .CountAsync(a => a.ProvinceId == provinceB);
+    Assert.Equal(0, countB);
+
+    // Province A's active assignment is untouched.
+    var stillActiveOnA = await db.ProvinceManagerAssignments
+      .IgnoreQueryFilters()
+      .SingleAsync(a => a.ProvinceId == provinceA && a.EndsAt == null);
+    Assert.Equal(manager, stillActiveOnA.AreaManagerId);
+  }
 }
