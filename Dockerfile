@@ -21,7 +21,7 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8443
 
-ENV ASPNETCORE_URLS=http://+:8080;https://+:8443
+ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=publish /app/publish .
