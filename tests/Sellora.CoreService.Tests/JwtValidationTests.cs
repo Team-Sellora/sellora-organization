@@ -8,13 +8,14 @@ using Xunit;
 
 namespace Sellora.CoreService.Tests;
 
-public class JwtValidationTests : IClassFixture<WebApplicationFactory<Program>>
+public class JwtValidationTests : IClassFixture<TestWebAppFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebAppFactory _factory;
 
-    public JwtValidationTests(WebApplicationFactory<Program> factory)
+    public JwtValidationTests(TestWebAppFactory factory)
     {
         _factory = factory;
+        _factory.CreateClient();
     }
 
     [Fact]
@@ -62,5 +63,24 @@ public class JwtValidationTests : IClassFixture<WebApplicationFactory<Program>>
             signingCredentials: credentials);
 
         return handler.WriteToken(token);
+    }
+
+    [Fact]
+    public async Task Request_WithExpiredToken_Returns401()
+    {
+        var client = _factory.CreateClient();
+
+        // Token signed with the trusted test key but expired 5 minutes ago.
+        var token = TestTokenFactory.CreateToken(
+            _factory.Issuer, _factory.Audience,
+            role: "SalesRep",
+            lifetime: TimeSpan.FromMinutes(-5));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/demo/sales-rep");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
