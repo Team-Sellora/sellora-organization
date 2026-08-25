@@ -192,4 +192,44 @@ public sealed class AssignAreaManagerEndpointTests
     db.SaveChanges();
     return staffProfileId;
   }
+
+  // Reassignment ends the prior record and leaves exactly one active
+  [Fact]
+  public async Task Put_ReassigningToDifferentManager_EndsPriorAndLeavesOneActive()
+  {
+    var provinceId = SeedNewProvince("REASSIGN");
+    var oldManagerId = SeedNewStaff(Roles.AreaManager, "old-mgr");
+    var newManagerId = SeedNewStaff(Roles.AreaManager, "new-mgr");
+
+    var first = await PutAsync(provinceId, oldManagerId, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+    var second = await PutAsync(provinceId, newManagerId, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+
+    using var scope = _factory.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+    var history = await db.ProvinceManagerAssignments
+      .IgnoreQueryFilters()
+      .Where(a => a.ProvinceId == provinceId)
+      .OrderBy(a => a.StartsAt)
+      .ToListAsync();
+
+    // Both assignments preserved — history is append-only.
+    Assert.Equal(2, history.Count);
+
+    // The old assignment has been ended.
+    Assert.Equal(oldManagerId, history[0].AreaManagerId);
+    Assert.NotNull(history[0].EndsAt);
+
+    // The new assignment is active.
+    Assert.Equal(newManagerId, history[1].AreaManagerId);
+    Assert.Null(history[1].EndsAt);
+
+    // Exactly one active row remains — the schema's partial unique index
+    // would have thrown otherwise, but assert it here for clarity.
+    var activeCount = history.Count(a => a.EndsAt == null);
+    Assert.Equal(1, activeCount);
+  }
 }
