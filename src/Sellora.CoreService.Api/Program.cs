@@ -87,10 +87,14 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddProblemDetails();
 
+builder.Services.AddControllers();
+
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
+
+app.MapControllers();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
