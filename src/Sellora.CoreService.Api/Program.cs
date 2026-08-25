@@ -150,6 +150,11 @@ app.MapGet("/demo-records", async (CoreDbContext db) =>
 
 app.MapHealthChecks("/health");
 
+if (!app.Environment.IsProduction())
+{
+    app.MapGet("/nonexistent", () => { throw new InvalidOperationException("Test failure"); });
+}
+
 app.Run();
 
 // Exposes the implicit Program class to the test project (WebApplicationFactory).
