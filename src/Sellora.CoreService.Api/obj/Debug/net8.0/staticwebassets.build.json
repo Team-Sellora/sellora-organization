@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "DoBW8CYQr5gXFSz/VFryGUMUYeyAN+k45LrMqT5JoJk=",
+  "Source": "Sellora.CoreService.Api",
+  "BasePath": "_content/Sellora.CoreService.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
