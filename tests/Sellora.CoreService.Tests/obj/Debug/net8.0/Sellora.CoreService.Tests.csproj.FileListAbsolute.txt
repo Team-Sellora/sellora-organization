@@ -491,3 +491,5 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Serilog.Sinks.Console.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Serilog.Sinks.Debug.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Serilog.Sinks.File.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Npgsql.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
