@@ -8,7 +8,8 @@ using Sellora.CoreService.Infrastructure.Persistence;
 using Sellora.CoreService.Api.Middleware;
 using Sellora.CoreService.Application.Hierarchy;
 using Sellora.CoreService.Infrastructure.Hierarchy;
-
+using Sellora.CoreService.Api.Identity;
+using Sellora.CoreService.Application.Identity;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -75,6 +76,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
+
+builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
 
 builder.Services.AddScoped<
   IHierarchyDeactivationService,
