@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Sellora.CoreService.Api.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +47,10 @@ builder.Services
         }
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddSelloraRolePolicies();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -74,6 +78,10 @@ app.MapGet("/whoami", (HttpContext ctx) =>
     return Results.Ok(new { name, claims });
 })
 .RequireAuthorization();
+
+// Temporary probe: requires the SalesRep policy. Used to verify role policies.
+app.MapGet("/salesrep-only", () => Results.Ok(new { message = "You are a SalesRep" }))
+    .RequireAuthorization(RolePolicies.RequireSalesRep);
 
 app.Run();
 
