@@ -13,6 +13,7 @@ public static class RolePolicies
     public const string RequireAgencyOperator = "RequireAgencyOperator";
     public const string RequireSalesRep = "RequireSalesRep";
     public const string RequireShopOwner = "RequireShopOwner";
+    public const string RequireHierarchyReader = "RequireHierarchyReader";
 
     public static void AddSelloraRolePolicies(this AuthorizationOptions options)
     {
@@ -21,5 +22,6 @@ public static class RolePolicies
         options.AddPolicy(RequireAgencyOperator, p => p.RequireRole("AgencyOperator"));
         options.AddPolicy(RequireSalesRep, p => p.RequireRole("SalesRep"));
         options.AddPolicy(RequireShopOwner, p => p.RequireRole("ShopOwner"));
+        options.AddPolicy(RequireHierarchyReader, policy => policy.RequireRole("CompanyAdmin", "AreaManager", "AgencyOperator", "SalesRep", "ShopOwner"));
     }
 }

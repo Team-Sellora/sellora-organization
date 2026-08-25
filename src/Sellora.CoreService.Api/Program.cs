@@ -6,7 +6,10 @@ using Sellora.CoreService.Domain.Tenancy;
 using Sellora.CoreService.Api.Tenancy;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Sellora.CoreService.Api.Middleware;
-
+using Sellora.CoreService.Application.Hierarchy;
+using Sellora.CoreService.Infrastructure.Hierarchy;
+using Sellora.CoreService.Api.Identity;
+using Sellora.CoreService.Application.Identity;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -72,7 +75,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddDbContext<CoreDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=sellora-core.db"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
+
+builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
+
+builder.Services.AddScoped<
+  IHierarchyDeactivationService,
+  HierarchyDeactivationService>();
 
 builder.Host.UseSerilog((context, config) =>
     config
@@ -98,23 +109,16 @@ app.MapControllers();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// DEV ONLY: create the SQLite database and seed two companies' demo data so the
-// tenant filter can be demonstrated. Real services use migrations (see CSP later).
-using (var scope = app.Services.CreateScope())
+// Apply version-controlled migrations when the service starts.
+// The test host uses an isolated test database and initializes it separately.
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
-    db.Database.EnsureCreated();
+    await using var scope = app.Services.CreateAsyncScope();
 
-    if (!db.DemoRecords.IgnoreQueryFilters().Any())
-    {
-        db.DemoRecords.AddRange(
-            new() { CompanyId = "COMP-001", Name = "Alpha record (Company 1)" },
-            new() { CompanyId = "COMP-001", Name = "Beta record (Company 1)" },
-            new() { CompanyId = "COMP-002", Name = "Gamma record (Company 2)" },
-            new() { CompanyId = "COMP-002", Name = "Delta record (Company 2)" }
-        );
-        db.SaveChanges();
-    }
+    var db = scope.ServiceProvider
+      .GetRequiredService<CoreDbContext>();
+
+    await db.Database.MigrateAsync();
 }
 
 if (app.Environment.IsDevelopment())
@@ -139,14 +143,7 @@ app.MapGet("/whoami", (HttpContext ctx) =>
 })
 .RequireAuthorization();
 
-// Returns demo records — automatically filtered to the caller's company by the
-// DbContext's global query filter. No companyId is read from the request.
-app.MapGet("/demo-records", async (CoreDbContext db) =>
-{
-    var records = await db.DemoRecords.ToListAsync();
-    return Results.Ok(records);
-})
-.RequireAuthorization();
+
 
 app.MapHealthChecks("/health");
 

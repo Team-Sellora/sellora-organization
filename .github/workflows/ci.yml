@@ -13,6 +13,22 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: organization_ci
+          POSTGRES_USER: sellora_ci
+          POSTGRES_PASSWORD: sellora_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sellora_ci -d organization_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       DOTNET_NOLOGO: true
@@ -50,10 +66,26 @@ jobs:
 
       - name: Verify Docker image runs
         run: |
-          docker run --rm -d -p 8080:8080 --name sellora-core-service-ci "$IMAGE_TAG"
-          sleep 10
-          curl -fsS http://localhost:8080/health || curl -fsS http://localhost:8080/health
-          docker stop sellora-core-service-ci
+          set -euo pipefail
+          cleanup() {
+            docker logs sellora-core-service-ci 2>&1 || true
+            docker rm -f sellora-core-service-ci 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          docker run --rm -d \
+            -e ASPNETCORE_URLS=http://+:8080 \
+            -e ConnectionStrings__Default="Host=host.docker.internal;Port=5432;Database=organization_ci;Username=sellora_ci;Password=sellora_ci_password" \
+            --add-host=host.docker.internal:host-gateway \
+            -p 8080:8080 \
+            --name sellora-core-service-ci \
+            "$IMAGE_TAG"
+          curl --fail --silent --show-error \
+            --retry 12 \
+            --retry-delay 2 \
+            --retry-connrefused \
+            --retry-all-errors \
+            http://127.0.0.1:8080/health
 
       - name: Upload test results
         if: always()
