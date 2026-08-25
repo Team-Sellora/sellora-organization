@@ -2,7 +2,7 @@ using Sellora.CoreService.Domain.Tenancy;
 
 namespace Sellora.CoreService.Domain.Entities;
 
-public class Province : ITenantScoped
+public class Province : ITenantScoped, ISoftDeactivatable
 {
   public Guid ProvinceId { get; set; }
   public Guid CompanyId { get; set; }

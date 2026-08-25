@@ -2,7 +2,7 @@ using Sellora.CoreService.Domain.Tenancy;
 
 namespace Sellora.CoreService.Domain.Entities;
 
-public class Agency : ITenantScoped
+public class Agency : ITenantScoped, ISoftDeactivatable
 {
   public Guid AgencyId { get; set; }
   public Guid CompanyId { get; set; }
