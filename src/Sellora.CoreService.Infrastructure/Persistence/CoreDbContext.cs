@@ -89,4 +89,39 @@ public class CoreDbContext : DbContext
         _tenant.CompanyId.HasValue &&
         entity.CompanyId == _tenant.CompanyId.Value);
   }
+
+  public override int SaveChanges(bool acceptAllChangesOnSuccess)
+  {
+    RejectHierarchyHardDeletes();
+
+    return base.SaveChanges(acceptAllChangesOnSuccess);
+  }
+
+  public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+  {
+    RejectHierarchyHardDeletes();
+
+    return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+  }
+
+  private void RejectHierarchyHardDeletes()
+  {
+    var deletedEntityNames = ChangeTracker
+      .Entries<ISoftDeactivatable>()
+      .Where(entry => entry.State == EntityState.Deleted)
+      .Select(entry => entry.Metadata.ClrType.Name)
+      .Distinct()
+      .OrderBy(name => name)
+      .ToArray();
+
+    if (deletedEntityNames.Length == 0)
+    {
+      return;
+    }
+
+    throw new InvalidOperationException(
+      "Hard deletion is intentionally unsupported for hierarchy " +
+      $"entities ({string.Join(", ", deletedEntityNames)}). " +
+      $"Set Status to '{HierarchyStatus.Inactive}' instead.");
+  }
 }
