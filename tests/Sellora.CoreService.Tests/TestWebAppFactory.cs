@@ -81,6 +81,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
       using var scope = services.BuildServiceProvider().CreateScope();
       var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
       db.Database.EnsureCreated();
+      HierarchyEndpointTestData.Seed(db);
       // db.SaveChanges();
     });
   }
