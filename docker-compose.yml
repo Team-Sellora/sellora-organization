@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: sellora-organization-db
+    environment:
+      POSTGRES_DB: organization_db
+      POSTGRES_USER: sellora
+      POSTGRES_PASSWORD: sellora_dev_pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - sellora_org_pgdata:/var/lib/postgresql/data
+
+volumes:
+  sellora_org_pgdata:
