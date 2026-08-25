@@ -72,7 +72,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddDbContext<CoreDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=sellora-core.db"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Host.UseSerilog((context, config) =>
     config
@@ -98,23 +98,11 @@ app.MapControllers();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// DEV ONLY: create the SQLite database and seed two companies' demo data so the
-// tenant filter can be demonstrated. Real services use migrations (see CSP later).
+// Database initialization
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
-    db.Database.EnsureCreated();
-
-    if (!db.DemoRecords.IgnoreQueryFilters().Any())
-    {
-        db.DemoRecords.AddRange(
-            new() { CompanyId = "COMP-001", Name = "Alpha record (Company 1)" },
-            new() { CompanyId = "COMP-001", Name = "Beta record (Company 1)" },
-            new() { CompanyId = "COMP-002", Name = "Gamma record (Company 2)" },
-            new() { CompanyId = "COMP-002", Name = "Delta record (Company 2)" }
-        );
-        db.SaveChanges();
-    }
+  var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+  db.Database.EnsureCreated();
 }
 
 if (app.Environment.IsDevelopment())
@@ -139,14 +127,7 @@ app.MapGet("/whoami", (HttpContext ctx) =>
 })
 .RequireAuthorization();
 
-// Returns demo records — automatically filtered to the caller's company by the
-// DbContext's global query filter. No companyId is read from the request.
-app.MapGet("/demo-records", async (CoreDbContext db) =>
-{
-    var records = await db.DemoRecords.ToListAsync();
-    return Results.Ok(records);
-})
-.RequireAuthorization();
+
 
 app.MapHealthChecks("/health");
 

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Sellora.CoreService.Domain.Entities;
+
 using Sellora.CoreService.Infrastructure.Persistence;
 
 namespace Sellora.CoreService.Tests;
@@ -81,12 +81,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
       using var scope = services.BuildServiceProvider().CreateScope();
       var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
       db.Database.EnsureCreated();
-      db.DemoRecords.AddRange(
-              new DemoRecord { CompanyId = "COMP-001", Name = "A-Alpha" },
-              new DemoRecord { CompanyId = "COMP-001", Name = "A-Beta" },
-              new DemoRecord { CompanyId = "COMP-002", Name = "B-Gamma" },
-              new DemoRecord { CompanyId = "COMP-002", Name = "B-Delta" });
-      db.SaveChanges();
+      // db.SaveChanges();
     });
   }
 
