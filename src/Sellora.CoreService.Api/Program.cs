@@ -83,6 +83,8 @@ builder.Host.UseSerilog((context, config) =>
                 "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
                 "{Properties:j}{NewLine}{Exception}"));
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 app.UseSerilogRequestLogging();
 
@@ -141,6 +143,8 @@ app.MapGet("/demo-records", async (CoreDbContext db) =>
     return Results.Ok(records);
 })
 .RequireAuthorization();
+
+app.MapHealthChecks("/health");
 
 app.Run();
 
