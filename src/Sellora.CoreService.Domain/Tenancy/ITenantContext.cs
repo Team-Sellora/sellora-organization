@@ -7,5 +7,5 @@ namespace Sellora.CoreService.Domain.Tenancy;
 public interface ITenantContext
 {
   /// <summary>The company ID for the current request, or null if unauthenticated.</summary>
-  string? CompanyId { get; }
+  Guid? CompanyId { get; }
 }
