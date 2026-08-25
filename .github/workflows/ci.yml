@@ -41,6 +41,19 @@ jobs:
             --logger "trx;LogFileName=test-results.trx" \
             --results-directory ./TestResults
 
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/sellora-core-service:${{ github.sha }}
+          docker build -t "$IMAGE_TAG" .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Verify Docker image runs
+        run: |
+          docker run --rm -d -p 8080:8080 --name sellora-core-service-ci "$IMAGE_TAG"
+          sleep 10
+          curl -fsS http://localhost:8080/health || curl -fsS http://localhost:8080/health
+          docker stop sellora-core-service-ci
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
