@@ -46,22 +46,19 @@ public class JwtValidationTests : IClassFixture<TestWebAppFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private static string CreateTokenSignedWithUntrustedKey()
+    private string CreateTokenSignedWithUntrustedKey()   // not static — needs _factory
     {
-        // A fresh RSA key generated here — NOT the Identity Server signing key.
         using var rsa = RSA.Create(2048);
         var securityKey = new RsaSecurityKey(rsa);
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
-
         var handler = new JwtSecurityTokenHandler();
         var token = new JwtSecurityToken(
-            issuer: "https://13.61.228.129:9443/oauth2/token",
-            audience: "ThNL_9YM7zUgl5k6XWXforF1NNga",
+            issuer: _factory.Issuer,
+            audience: _factory.Audience,
             claims: new[] { new System.Security.Claims.Claim("sub", "test-user") },
             notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);
-
         return handler.WriteToken(token);
     }
 
