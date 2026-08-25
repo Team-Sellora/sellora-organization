@@ -34,13 +34,16 @@ jobs:
           test -f ./publish/Sellora.CoreService.Api.dll
           test -f ./publish/Sellora.CoreService.Api.runtimeconfig.json
 
+          cd ./publish
+          zip -r ../publish.zip .
+
       - name: Deploy to staging slot
         uses: azure/webapps-deploy@v3
         with:
           app-name: sellora-organization
           slot-name: staging
           publish-profile: ${{ secrets.AZURE_STAGING_PUBLISH_PROFILE }}
-          package: ./publish
+          package: ./publish.zip
 
       - name: Verify live health endpoint
         shell: bash
