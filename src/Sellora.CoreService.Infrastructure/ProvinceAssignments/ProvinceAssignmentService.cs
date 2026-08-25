@@ -48,52 +48,92 @@ public sealed class ProvinceAssignmentService : IProvinceAssignmentService
       return AssignAreaManagerResult.TargetUserNotFound(request.AreaManagerId);
     }
 
-    // Role check — a specific 400 that names the actual role, not a
-    // generic validation error, so the admin sees exactly why (AC3).
     if (!string.Equals(target.Role, Roles.AreaManager, StringComparison.Ordinal))
     {
       return AssignAreaManagerResult.TargetNotAreaManager(target);
     }
 
-    if (!string.Equals(target.Status, HierarchyStatus.Active, StringComparison.Ordinal))
+    if (!string.Equals(
+      target.Status,
+      HierarchyStatus.Active,
+      StringComparison.Ordinal))
     {
       return AssignAreaManagerResult.TargetInactive(target);
     }
 
-    // Defensive check for CSP-62 scope: with the partial unique index
-    // (UNIQUE (province_id) WHERE ends_at IS NULL) on the table, inserting
-    // a second active row would throw a 500-shaped constraint violation.
-    // CSP-63 replaces this branch with the transactional end-then-create
-    // reassignment logic.
-    var hasActiveManager = await _db.ProvinceManagerAssignments
-      .AnyAsync(
+    // The current active assignment for this province, if any. The partial
+    // unique index (UNIQUE (province_id) WHERE ends_at IS NULL) guarantees
+    // at most one row here.
+    var currentForProvince = await _db.ProvinceManagerAssignments
+      .SingleOrDefaultAsync(
         a => a.ProvinceId == request.ProvinceId && a.EndsAt == null,
         cancellationToken);
 
-    if (hasActiveManager)
+    // Idempotent path: the target is already this province's active manager.
+    // Return the existing row rather than appending a duplicate history row
+    // — this makes the PUT safe to retry after a network glitch or double-
+    // click, which is the whole point of PUT being an idempotent verb.
+    if (currentForProvince is not null &&
+        currentForProvince.AreaManagerId == request.AreaManagerId)
     {
-      return AssignAreaManagerResult.ProvinceAlreadyHasActiveManager(
-        request.ProvinceId);
+      return AssignAreaManagerResult.Success(currentForProvince);
+    }
+
+    // 409: the target is currently the active manager of a *different*
+    // province. An Area Manager may cover multiple provinces, but the story
+    // treats that as a decision the caller must make explicitly — the
+    // endpoint refuses the implicit spread and names the other province.
+    var elsewhereForSameUser = await _db.ProvinceManagerAssignments
+      .FirstOrDefaultAsync(
+        a => a.AreaManagerId == request.AreaManagerId &&
+             a.ProvinceId != request.ProvinceId &&
+             a.EndsAt == null,
+        cancellationToken);
+
+    if (elsewhereForSameUser is not null)
+    {
+      return AssignAreaManagerResult.TargetAlreadyManagesAnotherProvince(
+        target,
+        elsewhereForSameUser.ProvinceId);
     }
 
     var actingSub = _currentUser.Subject
       ?? throw new InvalidOperationException(
         "The current request has no subject claim.");
 
+    // End-then-create in a single transaction. Both writes go through a
+    // single SaveChangesAsync (EF wraps that call in an implicit transaction
+    // on its own), and the explicit BeginTransactionAsync makes the atomicity
+    // of both writes durable against future code that might split them
+    // across multiple SaveChanges calls.
+    //
+    // PostgreSQL is the last line of defence: the partial unique index
+    // (UNIQUE (province_id) WHERE ends_at IS NULL) means a race between
+    // two admins is caught by the database, not silently allowed.
+    var now = DateTimeOffset.UtcNow;
+    await using var tx = await _db.Database.BeginTransactionAsync(
+      cancellationToken);
+
+    if (currentForProvince is not null)
+    {
+      currentForProvince.EndsAt = now;
+    }
+
     var assignment = new ProvinceManagerAssignment
     {
       AssignmentId = Guid.NewGuid(),
-      CompanyId = province.CompanyId,   // authoritative — tenant-filtered row
+      CompanyId = province.CompanyId,
       ProvinceId = province.ProvinceId,
       AreaManagerId = target.StaffProfileId,
-      ReportsToAdminId = null,           // populated in US-E1-8
-      StartsAt = DateTimeOffset.UtcNow,
-      EndsAt = null,                     // null == active
-      CreatedBy = actingSub              // audit: which admin did this
+      ReportsToAdminId = null,
+      StartsAt = now,
+      EndsAt = null,
+      CreatedBy = actingSub
     };
 
     _db.ProvinceManagerAssignments.Add(assignment);
     await _db.SaveChangesAsync(cancellationToken);
+    await tx.CommitAsync(cancellationToken);
 
     return AssignAreaManagerResult.Success(assignment);
   }
