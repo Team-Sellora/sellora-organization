@@ -43,7 +43,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/sellora-core-service:${{ github.sha }}
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_TAG=ghcr.io/$OWNER_LC/sellora-core-service:${{ github.sha }}
           docker build -t "$IMAGE_TAG" .
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
