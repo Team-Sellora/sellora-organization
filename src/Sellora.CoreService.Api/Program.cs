@@ -7,6 +7,7 @@ using Sellora.CoreService.Api.Tenancy;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Sellora.CoreService.Api.Middleware;
 
+
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -98,11 +99,16 @@ app.MapControllers();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Database initialization
-using (var scope = app.Services.CreateScope())
+// Apply version-controlled migrations when the service starts.
+// The test host uses an isolated test database and initializes it separately.
+if (!app.Environment.IsEnvironment("Testing"))
 {
-  var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
-  db.Database.EnsureCreated();
+    await using var scope = app.Services.CreateAsyncScope();
+
+    var db = scope.ServiceProvider
+      .GetRequiredService<CoreDbContext>();
+
+    await db.Database.MigrateAsync();
 }
 
 if (app.Environment.IsDevelopment())
