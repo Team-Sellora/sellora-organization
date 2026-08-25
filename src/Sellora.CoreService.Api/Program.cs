@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Sellora.CoreService.Domain.Tenancy;
 using Sellora.CoreService.Api.Tenancy;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Api.Middleware;
 
 using Serilog;
 
@@ -73,8 +74,20 @@ builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=sellora-core.db"));
 
+builder.Host.UseSerilog((context, config) =>
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console(
+            outputTemplate:
+                "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
+                "{Properties:j}{NewLine}{Exception}"));
+
 var app = builder.Build();
 app.UseSerilogRequestLogging();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 // DEV ONLY: create the SQLite database and seed two companies' demo data so the
 // tenant filter can be demonstrated. Real services use migrations (see CSP later).
 using (var scope = app.Services.CreateScope())
