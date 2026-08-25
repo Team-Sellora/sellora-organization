@@ -6,7 +6,8 @@ using Sellora.CoreService.Domain.Tenancy;
 using Sellora.CoreService.Api.Tenancy;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Sellora.CoreService.Api.Middleware;
-
+using Sellora.CoreService.Application.Hierarchy;
+using Sellora.CoreService.Infrastructure.Hierarchy;
 
 using Serilog;
 
@@ -74,6 +75,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
 builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddScoped<
+  IHierarchyDeactivationService,
+  HierarchyDeactivationService>();
 
 builder.Host.UseSerilog((context, config) =>
     config
