@@ -11,21 +11,21 @@ namespace Sellora.CoreService.Tests;
 /// </summary>
 public static class TestTokenFactory
 {
-    /// <summary>
-    /// Creates a validly-signed test token carrying the given role and company.
-    /// </summary>
-    public static string CreateToken(
-        string issuer,
-        string audience,
-        string role,
-        string companyId = "COMP-001",
-        string sub = "test-user")
-    {
-        var credentials = new SigningCredentials(
-            TestSigningKey.SecurityKey,
-            SecurityAlgorithms.RsaSha256);
+  /// <summary>
+  /// Creates a validly-signed test token carrying the given role and company.
+  /// </summary>
+  public static string CreateToken(
+      string issuer,
+      string audience,
+      string role,
+      string companyId = "COMP-001",
+      string sub = "test-user")
+  {
+    var credentials = new SigningCredentials(
+        TestSigningKey.SecurityKey,
+        SecurityAlgorithms.RsaSha256);
 
-        var claims = new List<Claim>
+    var claims = new List<Claim>
         {
             new("sub", sub),
             new("roles", role),
@@ -33,14 +33,14 @@ public static class TestTokenFactory
             new("companyId", companyId),
         };
 
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(5),
-            signingCredentials: credentials);
+    var token = new JwtSecurityToken(
+        issuer: issuer,
+        audience: audience,
+        claims: claims,
+        notBefore: DateTime.UtcNow,
+        expires: DateTime.UtcNow.AddMinutes(5),
+        signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
+    return new JwtSecurityTokenHandler().WriteToken(token);
+  }
 }

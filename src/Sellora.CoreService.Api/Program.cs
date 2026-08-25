@@ -6,7 +6,16 @@ using Sellora.CoreService.Domain.Tenancy;
 using Sellora.CoreService.Api.Tenancy;
 using Sellora.CoreService.Infrastructure.Persistence;
 
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Structured logging via Serilog, written to the console.
+builder.Host.UseSerilog((context, config) =>
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console());
 
 // Configuration
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -65,7 +74,7 @@ builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=sellora-core.db"));
 
 var app = builder.Build();
-
+app.UseSerilogRequestLogging();
 // DEV ONLY: create the SQLite database and seed two companies' demo data so the
 // tenant filter can be demonstrated. Real services use migrations (see CSP later).
 using (var scope = app.Services.CreateScope())
@@ -118,7 +127,7 @@ app.MapGet("/demo-records", async (CoreDbContext db) =>
     var records = await db.DemoRecords.ToListAsync();
     return Results.Ok(records);
 })
-.RequireAuthorization();    
+.RequireAuthorization();
 
 app.Run();
 

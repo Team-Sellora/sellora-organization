@@ -81,3 +81,12 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\runtimes\win-arm64\native\e_sqlite3.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\runtimes\win-x64\native\e_sqlite3.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\runtimes\win-x86\native\e_sqlite3.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.AspNetCore.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Extensions.Hosting.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Extensions.Logging.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Formatting.Compact.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Settings.Configuration.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Sinks.Console.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Sinks.Debug.dll
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\src\Sellora.CoreService.Api\bin\Debug\net8.0\Serilog.Sinks.File.dll
