@@ -29,4 +29,9 @@
     <ProjectReference Include="..\..\src\Sellora.CoreService.Domain\Sellora.CoreService.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.Testing.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

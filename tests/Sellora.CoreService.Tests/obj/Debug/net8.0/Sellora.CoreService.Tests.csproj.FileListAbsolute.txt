@@ -452,3 +452,4 @@ D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\System.Formats.Asn1.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
 D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\obj\Debug\net8.0\MvcTestingAppManifest.json
+D:\Computer Science\year 3\1st semester\CSP\project\sellora\sellora-organization\tests\Sellora.CoreService.Tests\bin\Debug\net8.0\appsettings.Testing.json
