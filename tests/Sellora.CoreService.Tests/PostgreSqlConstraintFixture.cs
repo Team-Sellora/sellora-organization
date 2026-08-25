@@ -32,19 +32,22 @@ public sealed class PostgreSqlConstraintFixture : IAsyncLifetime
     await _database.DisposeAsync();
   }
 
-  public CoreDbContext CreateDbContext()
+  public CoreDbContext CreateDbContext(Guid? companyId = null)
   {
     var options = new DbContextOptionsBuilder<CoreDbContext>()
       .UseNpgsql(_database.GetConnectionString())
       .Options;
 
-    return new CoreDbContext(options, EmptyTenantContext.Instance);
+    return new CoreDbContext(options, new FixedTenantContext(companyId));
   }
 
-  private sealed class EmptyTenantContext : ITenantContext
+  private sealed class FixedTenantContext : ITenantContext
   {
-    public static EmptyTenantContext Instance { get; } = new();
+    public FixedTenantContext(Guid? companyId)
+    {
+      CompanyId = companyId;
+    }
 
-    public Guid? CompanyId => null;
+    public Guid? CompanyId { get; }
   }
 }
