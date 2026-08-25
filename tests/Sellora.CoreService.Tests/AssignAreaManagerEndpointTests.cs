@@ -210,11 +210,12 @@ public sealed class AssignAreaManagerEndpointTests
     using var scope = _factory.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
 
-    var history = await db.ProvinceManagerAssignments
+    var historyRaw = await db.ProvinceManagerAssignments
       .IgnoreQueryFilters()
       .Where(a => a.ProvinceId == provinceId)
-      .OrderBy(a => a.StartsAt)
       .ToListAsync();
+
+    var history = historyRaw.OrderBy(a => a.StartsAt).ToList();
 
     // Both assignments preserved — history is append-only.
     Assert.Equal(2, history.Count);
@@ -265,5 +266,32 @@ public sealed class AssignAreaManagerEndpointTests
       .IgnoreQueryFilters()
       .SingleAsync(a => a.ProvinceId == provinceA && a.EndsAt == null);
     Assert.Equal(manager, stillActiveOnA.AreaManagerId);
+  }
+
+  // Idempotence — assigning the current manager again is a no-op success
+  [Fact]
+  public async Task Put_ReassigningSameManager_IsIdempotentAndAddsNoHistoryRow()
+  {
+    var provinceId = SeedNewProvince("IDEMPOTENT");
+    var managerId = SeedNewStaff(Roles.AreaManager, "same-mgr");
+
+    var first = await PutAsync(provinceId, managerId, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+    var second = await PutAsync(provinceId, managerId, Roles.CompanyAdmin);
+    Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+
+    using var scope = _factory.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+    var history = await db.ProvinceManagerAssignments
+      .IgnoreQueryFilters()
+      .Where(a => a.ProvinceId == provinceId)
+      .ToListAsync();
+
+    // Only one row — a retry did not append a duplicate history record.
+    Assert.Single(history);
+    Assert.Equal(managerId, history[0].AreaManagerId);
+    Assert.Null(history[0].EndsAt);
   }
 }
