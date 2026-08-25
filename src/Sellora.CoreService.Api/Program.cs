@@ -74,8 +74,17 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
+var connectionString = builder.Configuration.GetConnectionString("Default");
+if (builder.Environment.IsProduction() &&
+    (string.IsNullOrWhiteSpace(connectionString) ||
+     connectionString.Contains("Host=localhost", StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException(
+        "A production database connection string must be configured via ConnectionStrings__Default.");
+}
+
 builder.Services.AddDbContext<CoreDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
