@@ -1,0 +1,62 @@
+name: CD - Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    name: Deploy to Azure production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.403
+
+      - name: Publish application
+        run: |
+          dotnet publish \
+            src/Sellora.CoreService.Api/Sellora.CoreService.Api.csproj \
+            --configuration Release \
+            --output ./publish \
+            --no-self-contained
+
+      - name: Deploy to production
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: sellora-organization
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PRODUCTION_PUBLISH_PROFILE }}
+          package: ./publish
+
+      - name: Verify production health endpoint
+        shell: bash
+        run: |
+          URL="https://sellora-organization-erbxh6bvbpggc7df.eastasia-01.azurewebsites.net/health"
+
+          for attempt in {1..12}; do
+            STATUS=$(curl \
+              --silent \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              "$URL")
+
+            if [ "$STATUS" = "200" ]; then
+              echo "Production health check passed"
+              exit 0
+            fi
+
+            echo "Attempt $attempt returned HTTP $STATUS"
+            sleep 10
+          done
+
+          echo "Production health check failed"
+          exit 1

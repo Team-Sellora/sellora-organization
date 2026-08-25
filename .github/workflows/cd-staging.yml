@@ -1,0 +1,63 @@
+name: CD - Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy to Azure staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.403
+
+      - name: Publish application
+        run: |
+          dotnet publish \
+            src/Sellora.CoreService.Api/Sellora.CoreService.Api.csproj \
+            --configuration Release \
+            --output ./publish \
+            --no-self-contained
+
+      - name: Deploy to staging slot
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: sellora-organization
+          slot-name: staging
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+
+      - name: Verify live health endpoint
+        shell: bash
+        run: |
+          URL="https://sellora-organization-staging-geg9hja5hdgycybv.eastasia-01.azurewebsites.net/health"
+
+          for attempt in {1..12}; do
+            STATUS=$(curl \
+              --silent \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              "$URL")
+
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed: HTTP 200"
+              exit 0
+            fi
+
+            echo "Attempt $attempt returned HTTP $STATUS"
+            sleep 10
+          done
+
+          echo "Health check failed"
+          exit 1
