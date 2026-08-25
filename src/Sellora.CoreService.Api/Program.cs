@@ -139,10 +139,6 @@ app.MapGet("/whoami", (HttpContext ctx) =>
 })
 .RequireAuthorization();
 
-// Temporary probe: requires the SalesRep policy. Used to verify role policies.
-app.MapGet("/salesrep-only", () => Results.Ok(new { message = "You are a SalesRep" }))
-    .RequireAuthorization(RolePolicies.RequireSalesRep);
-
 // Returns demo records — automatically filtered to the caller's company by the
 // DbContext's global query filter. No companyId is read from the request.
 app.MapGet("/demo-records", async (CoreDbContext db) =>
