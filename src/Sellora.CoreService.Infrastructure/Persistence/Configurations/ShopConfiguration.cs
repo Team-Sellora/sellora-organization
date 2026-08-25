@@ -18,15 +18,15 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
 
         table.HasCheckConstraint(
           "ck_shop_latitude",
-          "latitude >= -90 AND latitude <= 90");
+          "CAST(latitude AS NUMERIC) >= -90 AND CAST(latitude AS NUMERIC) <= 90");
 
         table.HasCheckConstraint(
           "ck_shop_longitude",
-          "longitude >= -180 AND longitude <= 180");
+          "CAST(longitude AS NUMERIC) >= -180 AND CAST(longitude AS NUMERIC) <= 180");
 
         table.HasCheckConstraint(
           "ck_shop_credit_limit",
-          "credit_limit >= 0");
+          "CAST(credit_limit AS NUMERIC) >= 0");
       });
 
     builder.HasKey(shop => shop.ShopId)
