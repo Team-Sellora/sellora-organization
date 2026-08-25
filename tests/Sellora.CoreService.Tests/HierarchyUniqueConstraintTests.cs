@@ -266,7 +266,7 @@ public sealed class HierarchyUniqueConstraintTests
     {
       ProvinceId = secondProvinceId,
       CompanyId = seed.CompanyId,
-      Code = $"P-{Guid.NewGuid():N}",
+      Code = $"P-{Guid.NewGuid().ToString("N")[..8]}",
       Name = $"Second Province {Guid.NewGuid():N}",
       Status = "Active",
       CreatedAt = DateTimeOffset.UtcNow
@@ -312,7 +312,7 @@ public sealed class HierarchyUniqueConstraintTests
   {
     var companyId = Guid.NewGuid();
     var provinceId = Guid.NewGuid();
-    var suffix = Guid.NewGuid().ToString("N");
+    var suffix = Guid.NewGuid().ToString("N")[..8];
 
     db.Companies.Add(new Company
     {

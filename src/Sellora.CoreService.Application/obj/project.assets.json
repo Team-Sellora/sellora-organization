@@ -32,11 +32,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "d:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj",
+      "projectUniqueName": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj",
       "projectName": "Sellora.CoreService.Application",
-      "projectPath": "d:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj",
+      "projectPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\Sellora.CoreService.Application.csproj",
       "packagesPath": "C:\\Users\\Gayuth\\.nuget\\packages\\",
-      "outputPath": "d:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\obj\\",
+      "outputPath": "D:\\Computer Science\\year 3\\1st semester\\CSP\\project\\sellora\\sellora-organization\\src\\Sellora.CoreService.Application\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Gayuth\\AppData\\Roaming\\NuGet\\NuGet.Config",
