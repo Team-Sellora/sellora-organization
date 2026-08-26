@@ -33,7 +33,6 @@ var authority = jwt["Authority"]!;
 var metadataAddress = jwt["MetadataAddress"]!;
 var issuer = jwt["Issuer"]!;
 var audience = jwt["Audience"]!;
-
 // JWT bearer authentication
 // Validates every incoming token against Identity Server's JWKS:
 // signature (via keys fetched from JWKS), issuer, audience, and lifetime.
@@ -58,7 +57,6 @@ builder.Services
 
         // DEV ONLY: Identity Server uses a self-signed cert, so the metadata/JWKS
         // fetch over HTTPS would fail cert validation. Bypass it in Development.
-        // In production this must be removed and a trusted cert used.
         if (builder.Environment.IsDevelopment())
         {
             options.RequireHttpsMetadata = false;
@@ -76,7 +74,32 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
@@ -110,24 +133,33 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddControllers();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+        policy.AllowAnyHeader().AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
 
-app.MapControllers();
-
 app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Apply version-controlled migrations when the service starts.
-// The test host uses an isolated test database and initializes it separately.
 if (!app.Environment.IsEnvironment("Testing"))
 {
     await using var scope = app.Services.CreateAsyncScope();
-
-    var db = scope.ServiceProvider
-      .GetRequiredService<CoreDbContext>();
-
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
     await db.Database.MigrateAsync();
 }
 
@@ -139,12 +171,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Order matters: authentication before authorization.
+// CORS must come BEFORE authentication so the browser's preflight OPTIONS
+// (which has no Authorization header) isn't rejected by the JWT middleware.
+app.UseCors();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Temporary probe endpoint to prove JWT validation works.
-// Returns 401 without a valid token, 200 with one.
+app.MapControllers();
+
 app.MapGet("/whoami", (HttpContext ctx) =>
 {
     var name = ctx.User.Identity?.Name ?? "(no name claim)";
@@ -152,8 +187,6 @@ app.MapGet("/whoami", (HttpContext ctx) =>
     return Results.Ok(new { name, claims });
 })
 .RequireAuthorization();
-
-
 
 app.MapHealthChecks("/health");
 
