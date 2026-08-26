@@ -28,9 +28,19 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
   }
 
   public async Task<RegisterAgencyResult> RegisterAsync(
-    RegisterAgencyRequest request,
-    CancellationToken cancellationToken = default)
+      RegisterAgencyRequest request,
+      CancellationToken cancellationToken = default)
   {
+    if (string.IsNullOrWhiteSpace(request.Name))
+    {
+      return RegisterAgencyResult.InvalidRequest("Agency name is required.");
+    }
+
+    if (request.ProvinceId == Guid.Empty)
+    {
+      return RegisterAgencyResult.InvalidRequest("provinceId is required.");
+    }
+
     throw new NotImplementedException();
   }
 }
