@@ -7,6 +7,8 @@ using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Xunit;
+using Sellora.CoreService.Application.Common;
+using Sellora.CoreService.Application.Territories;
 
 namespace Sellora.CoreService.Tests;
 
@@ -322,5 +324,50 @@ public sealed class TerritoryAgencyAssignmentEndpointTests
 
     Assert.Equal(secondAgencyId, activeAssignment.AgencyId);
     Assert.Equal(territoryId, activeAssignment.TerritoryId);
+  }
+
+  [Fact]
+  public async Task Get_AssignedFalse_ReturnsOnlyUnassignedTerritories()
+  {
+    var provinceId = SeedProvince("UNASSIGNED");
+    SeedManagerAssignment(
+      provinceId,
+      HierarchyEndpointTestData.AreaManagerSubject);
+
+    var firstTerritoryId = SeedTerritory(provinceId, "UNASSIGNED-1");
+    var secondTerritoryId = SeedTerritory(provinceId, "UNASSIGNED-2");
+    var unassignedTerritoryId = SeedTerritory(provinceId, "UNASSIGNED-3");
+
+    var firstAgencyId = SeedAgency(provinceId, "Assigned Agency One");
+    var secondAgencyId = SeedAgency(provinceId, "Assigned Agency Two");
+
+    Assert.Equal(
+      HttpStatusCode.OK,
+      (await PutAsync(firstTerritoryId, firstAgencyId)).StatusCode);
+
+    Assert.Equal(
+      HttpStatusCode.OK,
+      (await PutAsync(secondTerritoryId, secondAgencyId)).StatusCode);
+
+    var token = TestTokenFactory.CreateToken(
+      _factory.Issuer,
+      _factory.Audience,
+      role: Roles.AreaManager,
+      companyId: HierarchyEndpointTestData.CompanyId.ToString(),
+      sub: HierarchyEndpointTestData.AreaManagerSubject);
+
+    var client = _factory.CreateClient();
+    client.DefaultRequestHeaders.Authorization =
+      new AuthenticationHeaderValue("Bearer", token);
+
+    var page = await client.GetFromJsonAsync<
+      PagedResponse<TerritoryResponse>>(
+        $"/api/territories?assigned=false&provinceId={provinceId}&page=1&pageSize=100");
+
+    Assert.NotNull(page);
+    Assert.Equal(1, page.TotalCount);
+
+    var territory = Assert.Single(page.Items);
+    Assert.Equal(unassignedTerritoryId, territory.TerritoryId);
   }
 }
