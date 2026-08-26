@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sellora.CoreService.Api.Authorization;
 using Sellora.CoreService.Api.Contracts;
+using Sellora.CoreService.Application.Common;
 using Sellora.CoreService.Application.Territories;
+using Sellora.CoreService.Domain.Entities;
 
 namespace Sellora.CoreService.Api.Controllers;
 
@@ -11,20 +13,55 @@ namespace Sellora.CoreService.Api.Controllers;
 public sealed class TerritoriesController : ControllerBase
 {
   private readonly ITerritoryRegistrationService _registrationService;
+  private readonly ITerritoryReadService _readService;
 
   public TerritoriesController(
-    ITerritoryRegistrationService registrationService)
+    ITerritoryRegistrationService registrationService,
+    ITerritoryReadService readService)
   {
     _registrationService = registrationService;
+    _readService = readService;
+  }
+
+  /// <summary>
+  /// Lists territories scoped to the caller's currently-managed provinces.
+  /// Silent scoping: rows in provinces the caller does not manage are
+  /// simply absent from the response.
+  /// </summary>
+  [HttpGet]
+  [Authorize(Policy = RolePolicies.RequireAreaManager)]
+  [ProducesResponseType(
+    typeof(PagedResponse<TerritoryResponse>),
+    StatusCodes.Status200OK)]
+  [ProducesResponseType(
+    typeof(ProblemDetails),
+    StatusCodes.Status400BadRequest)]
+  public async Task<IActionResult> List(
+    [FromQuery] TerritoryListQueryParams parameters,
+    CancellationToken cancellationToken)
+  {
+    if (!TryNormaliseListQuery(
+      parameters,
+      out var normalised,
+      out var badRequest))
+    {
+      return badRequest!;
+    }
+
+    var page = await _readService.ListAsync(
+      new TerritoryListQuery(
+        normalised.Status,
+        normalised.ProvinceId,
+        normalised.Page,
+        normalised.PageSize),
+      cancellationToken);
+
+    return Ok(page);
   }
 
   /// <summary>
   /// Creates a new territory within a province the caller manages.
-  ///
-  /// Restricted to AreaManager by policy; province ownership is validated
-  /// inside the service against the caller's current province-manager
-  /// assignments. Territory codes must be unique across the entire company
-  /// — a duplicate returns 409 naming the conflicting code.
+  /// Territory codes must be unique across the entire company.
   /// </summary>
   [HttpPost]
   [Authorize(Policy = RolePolicies.RequireAreaManager)]
@@ -80,8 +117,6 @@ public sealed class TerritoriesController : ControllerBase
           result.Territory.Status,
           result.Territory.CreatedAt)),
 
-      // Both 403 paths share the same status. The Message names which one
-      // fired so the React screen (CSP-72) can surface it inline.
       RegisterTerritoryOutcome.CallerNotAnActiveAreaManager or
       RegisterTerritoryOutcome.ProvinceNotManagedByCaller =>
         StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
@@ -121,5 +156,65 @@ public sealed class TerritoriesController : ControllerBase
         Detail = result.Message
       })
     };
+  }
+
+  /// <summary>
+  /// Normalises and validates the raw query-string parameters. Same shape
+  /// as AgenciesController's helper; kept local so each endpoint owns its
+  /// own defaults instead of coupling through a shared base controller.
+  /// </summary>
+  private static bool TryNormaliseListQuery(
+    TerritoryListQueryParams parameters,
+    out (string Status, Guid? ProvinceId, int Page, int PageSize) normalised,
+    out IActionResult? badRequest)
+  {
+    normalised = default;
+    badRequest = null;
+
+    var status = string.IsNullOrWhiteSpace(parameters.Status)
+      ? HierarchyStatus.Active
+      : parameters.Status.Trim();
+
+    if (status != HierarchyStatus.Active &&
+        status != HierarchyStatus.Inactive)
+    {
+      badRequest = new BadRequestObjectResult(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid status filter",
+        Detail =
+          $"status must be '{HierarchyStatus.Active}' or " +
+          $"'{HierarchyStatus.Inactive}'."
+      });
+      return false;
+    }
+
+    var page = parameters.Page ?? PagingLimits.DefaultPage;
+    if (page < 1)
+    {
+      badRequest = new BadRequestObjectResult(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid page",
+        Detail = "page must be greater than or equal to 1."
+      });
+      return false;
+    }
+
+    var pageSize = parameters.PageSize ?? PagingLimits.DefaultPageSize;
+    if (pageSize < 1 || pageSize > PagingLimits.MaxPageSize)
+    {
+      badRequest = new BadRequestObjectResult(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid pageSize",
+        Detail =
+          $"pageSize must be between 1 and {PagingLimits.MaxPageSize}."
+      });
+      return false;
+    }
+
+    normalised = (status, parameters.ProvinceId, page, pageSize);
+    return true;
   }
 }
