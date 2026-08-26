@@ -50,6 +50,21 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.CallerNotAnActiveAreaManager();
     }
 
+    var callerProfile = await _db.StaffProfiles
+      .SingleOrDefaultAsync(
+        s => s.IdentitySub == callerSub &&
+             s.Role == Roles.AreaManager &&
+             s.Status == HierarchyStatus.Active,
+        cancellationToken);
+
+    if (callerProfile is null)
+    {
+      _logger.LogWarning(
+        "POST /api/agencies rejected: JWT subject {Subject} does not " +
+        "resolve to an active AreaManager staff profile in this company.",
+        callerSub);
+      return RegisterAgencyResult.CallerNotAnActiveAreaManager();
+    }
 
     throw new NotImplementedException();
   }
