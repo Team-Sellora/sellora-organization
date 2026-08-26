@@ -169,7 +169,7 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
         .Where(a =>
           a.ProvinceId == agency.ProvinceId &&
           a.Name == agency.Name)
-        .Select(a => new DuplicateAgencyReference(a.AgencyId, a.Status))
+        .Select(a => new RegisterAgencyResult.DuplicateAgencyReference(a.AgencyId, a.Status))
         .SingleOrDefaultAsync(cancellationToken);
 
       return RegisterAgencyResult.DuplicateAgencyName(

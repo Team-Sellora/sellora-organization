@@ -28,7 +28,7 @@ public sealed class TerritoryRegistrationServiceTests
   private readonly Guid _westernProvinceId = Guid.NewGuid();
   private readonly Guid _centralProvinceId = Guid.NewGuid();
   private readonly Guid _areaManagerProfileId = Guid.NewGuid();
-  private const string ManagerSub = "test-sub:area-manager";
+  private readonly string _managerSub = $"test-sub:area-manager:{Guid.NewGuid():N}";
   private const string DuplicateCode = "WP-T-01";
 
   public TerritoryRegistrationServiceTests(PostgreSqlConstraintFixture fixture)
@@ -48,7 +48,7 @@ public sealed class TerritoryRegistrationServiceTests
     db.Companies.Add(new Company
     {
       CompanyId = _companyId,
-      TenantCode = "TEST-CO",
+      TenantCode = $"TEST-CO-{_companyId:N}",
       Name = "Test Company",
       Status = HierarchyStatus.Active,
       CreatedAt = DateTimeOffset.UtcNow
@@ -78,7 +78,7 @@ public sealed class TerritoryRegistrationServiceTests
     {
       StaffProfileId = _areaManagerProfileId,
       CompanyId = _companyId,
-      IdentitySub = ManagerSub,
+      IdentitySub = _managerSub,
       Role = Roles.AreaManager,
       DisplayName = "Test Area Manager",
       Email = "am@test.local",
@@ -115,7 +115,7 @@ public sealed class TerritoryRegistrationServiceTests
   public async Task RegisterAsync_SameCodeInDifferentProvincesOfSameCompany_RejectsSecond()
   {
     // Arrange — one caller acting as the manager of both provinces.
-    var currentUser = new FakeCurrentUserContext(ManagerSub);
+    var currentUser = new FakeCurrentUserContext(_managerSub);
 
     await using var db = _fixture.CreateDbContext(_companyId);
     var service = new TerritoryRegistrationService(

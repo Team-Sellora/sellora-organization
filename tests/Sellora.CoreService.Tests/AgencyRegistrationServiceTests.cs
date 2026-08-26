@@ -9,6 +9,7 @@ using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Agencies;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Xunit;
+using Sellora.CoreService.Tests;
 
 namespace Sellora.CoreService.Tests.Agencies;
 
@@ -20,31 +21,30 @@ namespace Sellora.CoreService.Tests.Agencies;
 /// not honour unique indexes.
 /// </summary>
 public sealed class AgencyRegistrationServiceTests
-  : IClassFixture<PostgresFixture>, IAsyncLifetime
+  : IClassFixture<PostgreSqlConstraintFixture>, IAsyncLifetime
 {
-  private readonly PostgresFixture _fixture;
+  private readonly PostgreSqlConstraintFixture _fixture;
 
   private readonly Guid _companyId = Guid.NewGuid();
   private readonly Guid _westernProvinceId = Guid.NewGuid();
   private readonly Guid _areaManagerProfileId = Guid.NewGuid();
-  private const string ManagerSub = "test-sub:area-manager";
+  private readonly string _managerSub = $"test-sub:area-manager:{Guid.NewGuid():N}";
   private const string DuplicateName = "Colombo Distribution Agency";
 
-  public AgencyRegistrationServiceTests(PostgresFixture fixture)
+  public AgencyRegistrationServiceTests(PostgreSqlConstraintFixture fixture)
   {
     _fixture = fixture;
   }
 
   public async Task InitializeAsync()
   {
-    await _fixture.ResetAsync();
 
     await using var db = _fixture.CreateDbContext(_companyId);
 
     db.Companies.Add(new Company
     {
       CompanyId = _companyId,
-      TenantCode = "TEST-CO",
+      TenantCode = $"TEST-CO-{_companyId:N}",
       Name = "Test Company",
       Status = HierarchyStatus.Active,
       CreatedAt = DateTimeOffset.UtcNow
@@ -64,7 +64,7 @@ public sealed class AgencyRegistrationServiceTests
     {
       StaffProfileId = _areaManagerProfileId,
       CompanyId = _companyId,
-      IdentitySub = ManagerSub,
+      IdentitySub = _managerSub,
       Role = Roles.AreaManager,
       DisplayName = "Test Area Manager",
       Email = "am@test.local",
@@ -96,7 +96,7 @@ public sealed class AgencyRegistrationServiceTests
   public async Task RegisterAsync_DuplicateNameInSameProvince_RejectsSecondAndNamesExisting()
   {
     // Arrange
-    var currentUser = new FakeCurrentUserContext(ManagerSub);
+    var currentUser = new FakeCurrentUserContext(_managerSub);
 
     await using var db1 = _fixture.CreateDbContext(_companyId);
     var service1 = new TerritoryRegistrationServiceHost(db1, currentUser);
@@ -180,7 +180,7 @@ public sealed class AgencyRegistrationServiceTests
     var act = async () => await db2.SaveChangesAsync();
 
     var ex = await act.Should().ThrowAsync<DbUpdateException>();
-    ex.WithInnerException<DbUpdateException, PostgresException>()
+    ex.WithInnerException<PostgresException>()
       .Which.ConstraintName.Should().Be(
         "uq_agency_province_name",
         "the composite index on (province_id, name) is the guarantee");
