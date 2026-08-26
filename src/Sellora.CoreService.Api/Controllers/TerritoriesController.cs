@@ -5,7 +5,7 @@ using Sellora.CoreService.Api.Contracts;
 using Sellora.CoreService.Application.Common;
 using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Domain.Entities;
-
+using Sellora.CoreService.Application.TerritoryAssignments;
 namespace Sellora.CoreService.Api.Controllers;
 
 [ApiController]
@@ -14,13 +14,16 @@ public sealed class TerritoriesController : ControllerBase
 {
   private readonly ITerritoryRegistrationService _registrationService;
   private readonly ITerritoryReadService _readService;
+  private readonly ITerritoryAgencyAssignmentService _assignmentService;
 
   public TerritoriesController(
     ITerritoryRegistrationService registrationService,
-    ITerritoryReadService readService)
+    ITerritoryReadService readService,
+    ITerritoryAgencyAssignmentService assignmentService)
   {
     _registrationService = registrationService;
     _readService = readService;
+    _assignmentService = assignmentService;
   }
 
   /// <summary>
@@ -153,6 +156,69 @@ public sealed class TerritoriesController : ControllerBase
       {
         Status = StatusCodes.Status400BadRequest,
         Title = "Territory creation rejected",
+        Detail = result.Message
+      })
+    };
+  }
+
+  [HttpPut("{territoryId:guid}/agency")]
+  [Authorize(Policy = RolePolicies.RequireAreaManager)]
+  [ProducesResponseType(StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  public async Task<IActionResult> AssignAgency(
+    Guid territoryId,
+    [FromBody] AssignTerritoryAgencyRequestBody body,
+    CancellationToken cancellationToken)
+  {
+    if (body is null || body.AgencyId == Guid.Empty)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid assignment request",
+        Detail = "agencyId is required."
+      });
+    }
+
+    var result = await _assignmentService.AssignAsync(
+      new AssignTerritoryAgencyRequest(territoryId, body.AgencyId),
+      cancellationToken);
+
+    return result.Outcome switch
+    {
+      AssignTerritoryAgencyOutcome.Success => Ok(new
+      {
+        result.Assignment!.AssignmentId,
+        result.Assignment.TerritoryId,
+        result.Assignment.AgencyId,
+        result.Assignment.StartsAt
+      }),
+
+      AssignTerritoryAgencyOutcome.CallerNotAnActiveAreaManager or
+      AssignTerritoryAgencyOutcome.TerritoryNotInManagedProvinces or
+      AssignTerritoryAgencyOutcome.AgencyNotInManagedProvinces or
+      AssignTerritoryAgencyOutcome.AgencyNotInTerritoryProvince =>
+        StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+        {
+          Status = StatusCodes.Status403Forbidden,
+          Title = "Territory assignment outside your scope",
+          Detail = result.Message
+        }),
+
+      AssignTerritoryAgencyOutcome.TerritoryNotFound or
+      AssignTerritoryAgencyOutcome.AgencyNotFound =>
+        NotFound(new ProblemDetails
+        {
+          Status = StatusCodes.Status404NotFound,
+          Title = "Assignment target not found",
+          Detail = result.Message
+        }),
+
+      _ => BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Territory assignment rejected",
         Detail = result.Message
       })
     };
