@@ -166,6 +166,12 @@ public sealed class TerritoriesController : ControllerBase
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(
+  typeof(ProblemDetails),
+  StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(
+  typeof(ProblemDetails),
+  StatusCodes.Status409Conflict)]
   public async Task<IActionResult> AssignAgency(
     Guid territoryId,
     [FromBody] AssignTerritoryAgencyRequestBody body,
@@ -204,6 +210,18 @@ public sealed class TerritoriesController : ControllerBase
           Status = StatusCodes.Status403Forbidden,
           Title = "Territory assignment outside your scope",
           Detail = result.Message
+        }),
+
+      AssignTerritoryAgencyOutcome.OpenWorkBlocksReassignment =>
+        Conflict(new ProblemDetails
+        {
+          Status = StatusCodes.Status409Conflict,
+          Title = "Territory reassignment blocked by open work",
+          Detail = result.Message,
+          Extensions =
+          {
+            ["blockingReferences"] = result.BlockingReferences
+          }
         }),
 
       AssignTerritoryAgencyOutcome.TerritoryNotFound or
