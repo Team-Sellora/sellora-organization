@@ -86,8 +86,8 @@ public class CoreDbContext : DbContext
   {
     modelBuilder.Entity<TEntity>()
       .HasQueryFilter(entity =>
-        _tenant.CompanyId.HasValue &&
-        entity.CompanyId == _tenant.CompanyId.Value);
+        _tenant.CompanyId != null &&
+        entity.CompanyId == _tenant.CompanyId);
   }
 
   public override int SaveChanges(bool acceptAllChangesOnSuccess)
