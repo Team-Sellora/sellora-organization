@@ -13,6 +13,8 @@ using Sellora.CoreService.Application.Identity;
 using Serilog;
 using Sellora.CoreService.Application.ProvinceAssignments;
 using Sellora.CoreService.Infrastructure.ProvinceAssignments;
+using Sellora.CoreService.Application.Provinces;
+using Sellora.CoreService.Infrastructure.Provinces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +86,8 @@ builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
 
 builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService>();
+
+builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
 
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 

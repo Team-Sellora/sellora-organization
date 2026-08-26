@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Sellora.CoreService.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9cd5ccbe6c097092cd24d895169edd1286f6e1ba")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fa22eaf56d69b19bcbb419bceecc9194d85f4b5c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sellora.CoreService.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sellora.CoreService.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
