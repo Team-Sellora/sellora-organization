@@ -11,4 +11,5 @@ public sealed class TerritoryListQueryParams
   public Guid? ProvinceId { get; set; }
   public int? Page { get; set; }
   public int? PageSize { get; set; }
+  public bool? Assigned { get; set; }
 }
