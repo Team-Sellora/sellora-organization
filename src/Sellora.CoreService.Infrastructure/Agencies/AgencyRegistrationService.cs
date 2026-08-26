@@ -95,6 +95,32 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.ProvinceNotManagedByCaller(request.ProvinceId);
     }
 
+    var agency = new Agency
+    {
+      AgencyId = Guid.NewGuid(),
+      CompanyId = province.CompanyId,
+      ProvinceId = province.ProvinceId,
+      Name = request.Name.Trim(),
+      Email = request.Email?.Trim(),
+      Phone = request.Phone?.Trim(),
+      Address = request.Address?.Trim(),
+      Status = HierarchyStatus.Active,
+      CreatedAt = DateTimeOffset.UtcNow
+    };
+
+    _db.Agencies.Add(agency);
+    await _db.SaveChangesAsync(cancellationToken);
+
+    _logger.LogInformation(
+      "AreaManager {StaffProfileId} registered agency {AgencyId} " +
+      "('{AgencyName}') in province {ProvinceId}.",
+      callerProfile.StaffProfileId,
+      agency.AgencyId,
+      agency.Name,
+      agency.ProvinceId);
+
+    return RegisterAgencyResult.Success(agency);
+
     throw new NotImplementedException();
   }
 }
