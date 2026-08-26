@@ -60,10 +60,10 @@ public class AgencyConfiguration : IEntityTypeConfiguration<Agency>
       .IsRequired();
 
     builder.HasIndex(agency => new
-      {
-        agency.ProvinceId,
-        agency.Name
-      })
+    {
+      agency.ProvinceId,
+      agency.Name
+    })
       .IsUnique()
       .HasDatabaseName("uq_agency_province_name");
 

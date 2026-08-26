@@ -150,13 +150,32 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
     }
     catch (DbUpdateException ex) when (IsUniqueAgencyNameViolation(ex))
     {
-      // The (province_id, name) unique index is enforced at the DB level
-      // by AgencyConfiguration. CSP-69 will refine the surfaced message
-      // and add its dedicated test, but catching here is the difference
-      // between a clean 409 and a raw 500 while that story is in flight.
+      // The (province_id, name) unique index enforces the invariant even
+      // under concurrent requests — a pre-check-then-insert would leave a
+      // gap where two callers can both pass the check before either row
+      // commits, and CSP-69 exists specifically to close that gap. We do
+      // NOT pre-check; we let the DB be authoritative.
+      //
+      // Detach the failed entity before the follow-up query so it does
+      // not get flushed a second time by any downstream SaveChanges on
+      // the same context.
+      _db.Entry(agency).State = EntityState.Detached;
+
+      // Look up the existing occupant so the error message names it.
+      // AsNoTracking to avoid re-attaching state we just detached, and
+      // the tenant filter still scopes this to the caller's company.
+      var existing = await _db.Agencies
+        .AsNoTracking()
+        .Where(a =>
+          a.ProvinceId == agency.ProvinceId &&
+          a.Name == agency.Name)
+        .Select(a => new DuplicateAgencyReference(a.AgencyId, a.Status))
+        .SingleOrDefaultAsync(cancellationToken);
+
       return RegisterAgencyResult.DuplicateAgencyName(
         agency.Name,
-        agency.ProvinceId);
+        agency.ProvinceId,
+        existing);
     }
 
     _logger.LogInformation(
