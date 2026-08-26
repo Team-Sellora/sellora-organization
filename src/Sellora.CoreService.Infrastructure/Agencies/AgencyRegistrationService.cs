@@ -66,6 +66,16 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.CallerNotAnActiveAreaManager();
     }
 
+    var province = await _db.Provinces
+  .SingleOrDefaultAsync(
+    p => p.ProvinceId == request.ProvinceId,
+    cancellationToken);
+
+    if (province is null)
+    {
+      return RegisterAgencyResult.ProvinceNotFound(request.ProvinceId);
+    }
+
     throw new NotImplementedException();
   }
 }
