@@ -10,7 +10,8 @@ public enum AssignTerritoryAgencyOutcome
   AgencyNotFound,
   TerritoryNotInManagedProvinces,
   AgencyNotInManagedProvinces,
-  AgencyNotInTerritoryProvince
+  AgencyNotInTerritoryProvince,
+  OpenWorkBlocksReassignment
 }
 
 public sealed class AssignTerritoryAgencyResult
@@ -18,15 +19,18 @@ public sealed class AssignTerritoryAgencyResult
   public AssignTerritoryAgencyOutcome Outcome { get; }
   public string Message { get; }
   public TerritoryAgencyAssignment? Assignment { get; }
+  public IReadOnlyList<string> BlockingReferences { get; }
 
   private AssignTerritoryAgencyResult(
     AssignTerritoryAgencyOutcome outcome,
     string message,
-    TerritoryAgencyAssignment? assignment = null)
+    TerritoryAgencyAssignment? assignment = null,
+    IReadOnlyList<string>? blockingReferences = null)
   {
     Outcome = outcome;
     Message = message;
     Assignment = assignment;
+    BlockingReferences = blockingReferences ?? Array.Empty<string>();
   }
 
   public static AssignTerritoryAgencyResult Success(
@@ -66,4 +70,12 @@ public sealed class AssignTerritoryAgencyResult
     new(
       AssignTerritoryAgencyOutcome.AgencyNotInTerritoryProvince,
       $"Agency '{agencyId}' is not in the same province as territory '{territoryId}'.");
+
+  public static AssignTerritoryAgencyResult OpenWorkBlocksReassignment(
+    Guid territoryId,
+    IReadOnlyList<string> blockingReferences) =>
+    new(
+      AssignTerritoryAgencyOutcome.OpenWorkBlocksReassignment,
+      $"Territory '{territoryId}' cannot be reassigned while it has open work.",
+      blockingReferences: blockingReferences);
 }
