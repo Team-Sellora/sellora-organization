@@ -111,19 +111,49 @@ public sealed class TerritoryAgencyAssignmentService
         request.AgencyId);
     }
 
+    var currentAssignment = await _db.TerritoryAgencyAssignments
+      .SingleOrDefaultAsync(
+        assignment =>
+          assignment.TerritoryId == territory.TerritoryId &&
+          assignment.EndsAt == null,
+        cancellationToken);
+
+    // PUT is idempotent: retrying the current assignment must not append
+    // another history row.
+    if (currentAssignment is not null &&
+        currentAssignment.AgencyId == agency.AgencyId)
+    {
+      return AssignTerritoryAgencyResult.Success(currentAssignment);
+    }
+
+    var now = DateTimeOffset.UtcNow;
+
+    // Ending the old row and inserting the new row must be atomic. The
+    // partial unique index remains the database-level guarantee that only
+    // one active assignment exists for a territory.
+    await using var transaction = await _db.Database.BeginTransactionAsync(
+      cancellationToken);
+
+    if (currentAssignment is not null)
+    {
+      currentAssignment.EndsAt = now;
+    }
+
     var assignment = new TerritoryAgencyAssignment
     {
       AssignmentId = Guid.NewGuid(),
       CompanyId = territory.CompanyId,
       TerritoryId = territory.TerritoryId,
       AgencyId = agency.AgencyId,
-      StartsAt = DateTimeOffset.UtcNow,
+      StartsAt = now,
       EndsAt = null,
       CreatedBy = callerSub!
     };
 
     _db.TerritoryAgencyAssignments.Add(assignment);
+
     await _db.SaveChangesAsync(cancellationToken);
+    await transaction.CommitAsync(cancellationToken);
 
     return AssignTerritoryAgencyResult.Success(assignment);
   }
