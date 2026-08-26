@@ -41,6 +41,16 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.InvalidRequest("provinceId is required.");
     }
 
+    var callerSub = _currentUser.Subject;
+    if (string.IsNullOrEmpty(callerSub))
+    {
+      _logger.LogWarning(
+        "POST /api/agencies rejected: authenticated request carried no " +
+        "subject claim.");
+      return RegisterAgencyResult.CallerNotAnActiveAreaManager();
+    }
+
+
     throw new NotImplementedException();
   }
 }
