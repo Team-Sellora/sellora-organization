@@ -102,6 +102,7 @@ public sealed class AgenciesController : ControllerBase
 
     var request = new RegisterAgencyRequest(
       body.ProvinceId,
+      body.OperatorId,
       body.Name,
       body.Email,
       body.Phone,
@@ -141,13 +142,27 @@ public sealed class AgenciesController : ControllerBase
         Detail = result.Message
       }),
 
+      RegisterAgencyOutcome.OperatorNotFound => NotFound(new ProblemDetails
+      {
+        Status = StatusCodes.Status404NotFound,
+        Title = "Agency operator not found",
+        Detail = result.Message
+      }),
+
+      RegisterAgencyOutcome.OperatorNotAnActiveAgencyOperator =>
+        BadRequest(new ProblemDetails
+        {
+          Status = StatusCodes.Status400BadRequest,
+          Title = "Invalid agency operator",
+          Detail = result.Message
+        }),
+
       RegisterAgencyOutcome.DuplicateAgencyName => Conflict(new ProblemDetails
       {
         Status = StatusCodes.Status409Conflict,
         Title = "Duplicate agency name",
         Detail = result.Message
       }),
-
       _ => BadRequest(new ProblemDetails
       {
         Status = StatusCodes.Status400BadRequest,
