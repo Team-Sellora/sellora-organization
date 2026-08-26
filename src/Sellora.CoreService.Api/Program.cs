@@ -17,6 +17,8 @@ using Sellora.CoreService.Application.Provinces;
 using Sellora.CoreService.Infrastructure.Provinces;
 using Sellora.CoreService.Application.AreaManagers;
 using Sellora.CoreService.Infrastructure.AreaManagers;
+using Sellora.CoreService.Application.Agencies;
+using Sellora.CoreService.Infrastructure.Agencies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +124,8 @@ builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
 builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService>();
 
 builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
+
+builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
 
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
