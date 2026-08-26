@@ -128,8 +128,10 @@ builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService
 builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
 
 builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
+builder.Services.AddScoped<IAgencyReadService, AgencyReadService>();
 
 builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationService>();
+builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
