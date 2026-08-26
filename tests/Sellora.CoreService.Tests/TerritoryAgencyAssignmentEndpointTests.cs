@@ -282,4 +282,45 @@ public sealed class TerritoryAgencyAssignmentEndpointTests
 
     Assert.False(hasAssignment);
   }
+
+  [Fact]
+  public async Task Put_ReassigningTerritory_EndsOldAssignmentAndKeepsOneActive()
+  {
+    var provinceId = SeedProvince("REASSIGN");
+    SeedManagerAssignment(
+      provinceId,
+      HierarchyEndpointTestData.AreaManagerSubject);
+
+    var territoryId = SeedTerritory(provinceId, "REASSIGN-T");
+    var firstAgencyId = SeedAgency(provinceId, "First Assignment Agency");
+    var secondAgencyId = SeedAgency(provinceId, "Second Assignment Agency");
+
+    var firstResponse = await PutAsync(territoryId, firstAgencyId);
+    Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+    var secondResponse = await PutAsync(territoryId, secondAgencyId);
+    Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+
+    using var scope = _factory.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+    var history = await db.TerritoryAgencyAssignments
+      .IgnoreQueryFilters()
+      .Where(assignment => assignment.TerritoryId == territoryId)
+      .ToListAsync();
+
+    Assert.Equal(2, history.Count);
+
+    var oldAssignment = Assert.Single(
+      history.Where(assignment => assignment.AgencyId == firstAgencyId));
+
+    Assert.NotNull(oldAssignment.EndsAt);
+    Assert.True(oldAssignment.EndsAt >= oldAssignment.StartsAt);
+
+    var activeAssignment = Assert.Single(
+      history.Where(assignment => assignment.EndsAt == null));
+
+    Assert.Equal(secondAgencyId, activeAssignment.AgencyId);
+    Assert.Equal(territoryId, activeAssignment.TerritoryId);
+  }
 }
