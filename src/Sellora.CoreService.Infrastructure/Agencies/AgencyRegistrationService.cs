@@ -76,6 +76,25 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.ProvinceNotFound(request.ProvinceId);
     }
 
+    var isActiveManager = await _db.ProvinceManagerAssignments
+      .AnyAsync(
+        a => a.ProvinceId == request.ProvinceId &&
+             a.AreaManagerId == callerProfile.StaffProfileId &&
+             a.EndsAt == null,
+        cancellationToken);
+
+    if (!isActiveManager)
+    {
+      _logger.LogWarning(
+        "POST /api/agencies rejected: AreaManager {StaffProfileId} " +
+        "(sub {Subject}) attempted to register an agency in province " +
+        "{ProvinceId} they do not currently manage.",
+        callerProfile.StaffProfileId,
+        callerSub,
+        request.ProvinceId);
+      return RegisterAgencyResult.ProvinceNotManagedByCaller(request.ProvinceId);
+    }
+
     throw new NotImplementedException();
   }
 }
