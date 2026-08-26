@@ -37,7 +37,9 @@ public enum RegisterAgencyOutcome
   DuplicateAgencyName,
 
   /// <summary>Body-level validation failed (e.g. blank name). Maps to 400.</summary>
-  InvalidRequest
+  InvalidRequest,
+  OperatorNotFound,
+  OperatorNotAnActiveAgencyOperator
 }
 
 /// <summary>
@@ -81,6 +83,17 @@ public sealed class RegisterAgencyResult
       $"You are not the active Area Manager of province '{provinceId}'. " +
       "Agency registration is restricted to the manager responsible for " +
       "the target province.");
+
+  public static RegisterAgencyResult OperatorNotFound(Guid operatorId) =>
+    new(
+      RegisterAgencyOutcome.OperatorNotFound,
+      $"Agency operator '{operatorId}' was not found in your company.");
+
+  public static RegisterAgencyResult OperatorNotAnActiveAgencyOperator(
+    Guid operatorId) =>
+    new(
+      RegisterAgencyOutcome.OperatorNotAnActiveAgencyOperator,
+      $"Staff profile '{operatorId}' is not an active Agency Operator.");
 
   public static RegisterAgencyResult DuplicateAgencyName(
     string name,

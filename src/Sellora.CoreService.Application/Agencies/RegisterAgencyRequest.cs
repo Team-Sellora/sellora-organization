@@ -12,6 +12,7 @@ namespace Sellora.CoreService.Application.Agencies;
 /// </summary>
 public sealed record RegisterAgencyRequest(
   Guid ProvinceId,
+  Guid OperatorId,
   string Name,
   string? Email,
   string? Phone,
