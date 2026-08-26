@@ -56,7 +56,8 @@ public sealed class TerritoriesController : ControllerBase
         normalised.Status,
         normalised.ProvinceId,
         normalised.Page,
-        normalised.PageSize),
+        normalised.PageSize,
+        normalised.Assigned),
       cancellationToken);
 
     return Ok(page);
@@ -249,7 +250,13 @@ public sealed class TerritoriesController : ControllerBase
   /// </summary>
   private static bool TryNormaliseListQuery(
     TerritoryListQueryParams parameters,
-    out (string Status, Guid? ProvinceId, int Page, int PageSize) normalised,
+    out (
+      string Status,
+      Guid? ProvinceId,
+      int Page,
+      int PageSize,
+      bool? Assigned
+    ) normalised,
     out IActionResult? badRequest)
   {
     normalised = default;
@@ -298,7 +305,13 @@ public sealed class TerritoriesController : ControllerBase
       return false;
     }
 
-    normalised = (status, parameters.ProvinceId, page, pageSize);
+    normalised = (
+      status,
+      parameters.ProvinceId,
+      page,
+      pageSize,
+      parameters.Assigned
+    );
     return true;
   }
 }
