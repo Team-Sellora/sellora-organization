@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Sellora.CoreService.Api.Authorization;
 using Sellora.CoreService.Api.Contracts;
 using Sellora.CoreService.Application.ProvinceAssignments;
+using Sellora.CoreService.Application.Provinces;
 
 namespace Sellora.CoreService.Api.Controllers;
 
@@ -11,10 +12,31 @@ namespace Sellora.CoreService.Api.Controllers;
 public sealed class ProvincesController : ControllerBase
 {
   private readonly IProvinceAssignmentService _assignments;
+  private readonly IProvinceReadService _provinces;
 
-  public ProvincesController(IProvinceAssignmentService assignments)
+  public ProvincesController(
+    IProvinceAssignmentService assignments,
+    IProvinceReadService provinces)
   {
     _assignments = assignments;
+    _provinces = provinces;
+  }
+
+  /// <summary>
+  /// Lists provinces in the caller's company, each with its current active
+  /// Area Manager (or null) and active agency/shop counts. Backed by a
+  /// single aggregate query so it stays cheap under dashboard polling.
+  /// </summary>
+  [HttpGet]
+  [Authorize(Policy = RolePolicies.RequireCompanyAdmin)]
+  [ProducesResponseType(
+    typeof(IReadOnlyList<ProvinceSummaryResponse>),
+    StatusCodes.Status200OK)]
+  public async Task<ActionResult<IReadOnlyList<ProvinceSummaryResponse>>> List(
+    CancellationToken cancellationToken)
+  {
+    var provinces = await _provinces.ListAsync(cancellationToken);
+    return Ok(provinces);
   }
 
   /// <summary>
