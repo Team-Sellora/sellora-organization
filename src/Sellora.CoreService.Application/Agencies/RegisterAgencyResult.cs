@@ -84,10 +84,39 @@ public sealed class RegisterAgencyResult
 
   public static RegisterAgencyResult DuplicateAgencyName(
     string name,
-    Guid provinceId) =>
-    new(RegisterAgencyOutcome.DuplicateAgencyName,
-      $"An agency named '{name}' already exists in province " +
-      $"'{provinceId}'. Agency names must be unique within a province.");
+    Guid provinceId,
+    DuplicateAgencyReference? existing = null)
+  {
+    var message = existing is null
+      // Fallback: the row that caused the constraint violation could not
+      // be looked up (extremely rare — a concurrent delete would be one
+      // way). Still return something useful so the caller isn't left with
+      // a bare error code.
+      ? $"An agency named '{name}' already exists in province " +
+        $"'{provinceId}'. Agency names must be unique within a province."
+
+      // Preferred: name the specific existing agency so the caller can
+      // inspect it, and mention status because the constraint fires even
+      // against inactive rows — a user seeing a "duplicate" error on an
+      // apparently-empty province is almost always hitting a deactivated
+      // agency with the same name.
+      : $"An agency named '{name}' already exists in province " +
+        $"'{provinceId}' (agency id: '{existing.AgencyId}', status: " +
+        $"'{existing.Status}'). Agency names must be unique within a " +
+        "province — either choose a different name, or reactivate the " +
+        "existing agency if it is currently inactive.";
+
+    return new(RegisterAgencyOutcome.DuplicateAgencyName, message);
+  }
+
+  /// <summary>
+  /// Minimum identifying detail about an agency that already occupies a
+  /// (province, name) slot. Passed to DuplicateAgencyName so the caller can
+  /// name the existing row rather than just echo the attempted name back.
+  /// </summary>
+  public sealed record DuplicateAgencyReference(
+    Guid AgencyId,
+    string Status);
 
   public static RegisterAgencyResult InvalidRequest(string message) =>
     new(RegisterAgencyOutcome.InvalidRequest, message);
