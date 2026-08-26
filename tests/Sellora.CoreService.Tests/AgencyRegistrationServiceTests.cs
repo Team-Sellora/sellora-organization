@@ -31,6 +31,9 @@ public sealed class AgencyRegistrationServiceTests
   private readonly string _managerSub = $"test-sub:area-manager:{Guid.NewGuid():N}";
   private const string DuplicateName = "Colombo Distribution Agency";
 
+  private readonly Guid _operatorProfileId = Guid.NewGuid();
+  private readonly string _operatorSub = $"test-sub:agency-operator:{Guid.NewGuid():N}";
+
   public AgencyRegistrationServiceTests(PostgreSqlConstraintFixture fixture)
   {
     _fixture = fixture;
@@ -67,7 +70,19 @@ public sealed class AgencyRegistrationServiceTests
       IdentitySub = _managerSub,
       Role = Roles.AreaManager,
       DisplayName = "Test Area Manager",
-      Email = "am@test.local",
+      Email = $"manager-{_areaManagerProfileId:N}@test.local",
+      Status = HierarchyStatus.Active,
+      CreatedAt = DateTimeOffset.UtcNow
+    });
+
+    db.StaffProfiles.Add(new StaffProfile
+    {
+      StaffProfileId = _operatorProfileId,
+      CompanyId = _companyId,
+      IdentitySub = _operatorSub,
+      Role = Roles.AgencyOperator,
+      DisplayName = "Test Agency Operator",
+      Email = $"operator-{_operatorProfileId:N}@test.local",
       Status = HierarchyStatus.Active,
       CreatedAt = DateTimeOffset.UtcNow
     });
@@ -104,10 +119,21 @@ public sealed class AgencyRegistrationServiceTests
     // Act 1 — first registration succeeds.
     var first = await service1.Service.RegisterAsync(new RegisterAgencyRequest(
       _westernProvinceId,
+      _operatorProfileId,
       DuplicateName,
       Email: "colombo@test.local",
       Phone: null,
       Address: null));
+
+    await using var verifyDb = _fixture.CreateDbContext(_companyId);
+
+    var link = await verifyDb.AgencyOperatorAssignments
+      .SingleAsync(assignment =>
+        assignment.AgencyId == first.Agency!.AgencyId &&
+        assignment.OperatorId == _operatorProfileId &&
+        assignment.EndsAt == null);
+
+    link.CompanyId.Should().Be(_companyId);
 
     // Act 2 — fresh context so we're not relying on in-memory dedupe;
     // the constraint MUST fire at the database.
@@ -116,8 +142,9 @@ public sealed class AgencyRegistrationServiceTests
 
     var second = await service2.Service.RegisterAsync(new RegisterAgencyRequest(
       _westernProvinceId,
+      _operatorProfileId,
       DuplicateName,
-      Email: "colombo-2@test.local",
+      Email: "colombo@test.local",
       Phone: null,
       Address: null));
 
@@ -134,7 +161,6 @@ public sealed class AgencyRegistrationServiceTests
       "the error must name the existing agency (CSP-69 acceptance criterion)");
 
     // And the DB still holds exactly one row with that name.
-    await using var verifyDb = _fixture.CreateDbContext(_companyId);
     var count = await verifyDb.Agencies
       .CountAsync(a =>
         a.ProvinceId == _westernProvinceId &&
