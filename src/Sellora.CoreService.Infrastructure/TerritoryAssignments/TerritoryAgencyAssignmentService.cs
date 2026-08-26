@@ -14,15 +14,18 @@ public sealed class TerritoryAgencyAssignmentService
   private readonly CoreDbContext _db;
   private readonly ICurrentUserContext _currentUser;
   private readonly ILogger<TerritoryAgencyAssignmentService> _logger;
+  private readonly IOpenWorkChecker _openWorkChecker;
 
   public TerritoryAgencyAssignmentService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
-    ILogger<TerritoryAgencyAssignmentService> logger)
+    ILogger<TerritoryAgencyAssignmentService> logger,
+    IOpenWorkChecker openWorkChecker)
   {
     _db = db;
     _currentUser = currentUser;
     _logger = logger;
+    _openWorkChecker = openWorkChecker;
   }
 
   public async Task<AssignTerritoryAgencyResult> AssignAsync(
@@ -124,6 +127,30 @@ public sealed class TerritoryAgencyAssignmentService
         currentAssignment.AgencyId == agency.AgencyId)
     {
       return AssignTerritoryAgencyResult.Success(currentAssignment);
+    }
+
+    if (currentAssignment is not null)
+    {
+      var openWork = await _openWorkChecker.GetOpenWorkForTerritoryAsync(
+        territory.TerritoryId,
+        cancellationToken);
+
+      if (openWork.HasOpenWork)
+      {
+        _logger.LogWarning(
+          "Rejected territory reassignment: AreaManager {AreaManagerId} " +
+          "attempted territory {TerritoryId} from agency {CurrentAgencyId} " +
+          "to agency {NewAgencyId}; open work blocks the change: {References}",
+          manager.StaffProfileId,
+          territory.TerritoryId,
+          currentAssignment.AgencyId,
+          agency.AgencyId,
+          openWork.BlockingReferences);
+
+        return AssignTerritoryAgencyResult.OpenWorkBlocksReassignment(
+          territory.TerritoryId,
+          openWork.BlockingReferences);
+      }
     }
 
     var now = DateTimeOffset.UtcNow;
