@@ -97,6 +97,30 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       return RegisterAgencyResult.ProvinceNotFound(request.ProvinceId);
     }
 
+    if (request.OperatorId == Guid.Empty)
+    {
+      return RegisterAgencyResult.InvalidRequest(
+        "operatorId is required.");
+    }
+
+    var operatorProfile = await _db.StaffProfiles
+      .SingleOrDefaultAsync(
+        staff => staff.StaffProfileId == request.OperatorId,
+        cancellationToken);
+
+    if (operatorProfile is null)
+    {
+      return RegisterAgencyResult.OperatorNotFound(request.OperatorId);
+    }
+
+    if (operatorProfile.Role != Roles.AgencyOperator ||
+        operatorProfile.Status != HierarchyStatus.Active ||
+        operatorProfile.CompanyId != province.CompanyId)
+    {
+      return RegisterAgencyResult.OperatorNotAnActiveAgencyOperator(
+        request.OperatorId);
+    }
+
     // Step 4: the caller must be the *current* active manager of that
     // province. Reading it from province_manager_assignment (not from a
     // claim) is deliberate: assignments can change between sessions, and
@@ -142,7 +166,19 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
       CreatedAt = DateTimeOffset.UtcNow
     };
 
+    var operatorAssignment = new AgencyOperatorAssignment
+    {
+      AssignmentId = Guid.NewGuid(),
+      CompanyId = province.CompanyId,
+      AgencyId = agency.AgencyId,
+      OperatorId = operatorProfile.StaffProfileId,
+      StartsAt = DateTimeOffset.UtcNow,
+      EndsAt = null,
+      CreatedBy = callerSub
+    };
+
     _db.Agencies.Add(agency);
+    _db.AgencyOperatorAssignments.Add(operatorAssignment);
 
     try
     {
