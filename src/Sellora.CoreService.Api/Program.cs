@@ -17,6 +17,8 @@ using Sellora.CoreService.Application.Provinces;
 using Sellora.CoreService.Infrastructure.Provinces;
 using Sellora.CoreService.Application.AreaManagers;
 using Sellora.CoreService.Infrastructure.AreaManagers;
+using Sellora.CoreService.Application.Shops;
+using Sellora.CoreService.Infrastructure.Shops;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -126,6 +128,8 @@ builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
 builder.Services.AddScoped<IAreaManagerReadService, AreaManagerReadService>();
+
+builder.Services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
 
 builder.Host.UseSerilog((context, config) =>
     config
