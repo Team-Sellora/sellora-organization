@@ -19,6 +19,12 @@ using Sellora.CoreService.Application.AreaManagers;
 using Sellora.CoreService.Infrastructure.AreaManagers;
 using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Infrastructure.Shops;
+using Sellora.CoreService.Application.Agencies;
+using Sellora.CoreService.Infrastructure.Agencies;
+using Sellora.CoreService.Application.Territories;
+using Sellora.CoreService.Infrastructure.Territories;
+using Sellora.CoreService.Application.TerritoryAssignments;
+using Sellora.CoreService.Infrastructure.TerritoryAssignments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +79,8 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddScoped<IOpenWorkChecker, StubOpenWorkChecker>();
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -132,6 +140,14 @@ builder.Services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
 builder.Services.AddScoped<IShopUpdateService, ShopUpdateService>();
 
 builder.Services.AddScoped<IShopReadService, ShopReadService>();
+
+builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
+builder.Services.AddScoped<IAgencyReadService, AgencyReadService>();
+
+builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationService>();
+builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
+
+builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAssignmentService>();
 
 builder.Host.UseSerilog((context, config) =>
     config
