@@ -36,7 +36,25 @@ public sealed class SalesRepAssignmentReadService
       .AsNoTracking()
       .Where(profile =>
         profile.Role == Roles.SalesRep &&
-        profile.Status == HierarchyStatus.Active)
+        profile.Status == HierarchyStatus.Active &&
+        (
+          // Unassigned reps can be selected for a new assignment.
+          !_db.SalesRepTerritoryAssignments.Any(assignment =>
+            assignment.SalesRepId == profile.StaffProfileId &&
+            assignment.EndsAt == null)
+
+          ||
+
+          // Assigned reps are visible only when their active territory
+          // belongs to one of the caller's agencies.
+          _db.SalesRepTerritoryAssignments.Any(assignment =>
+            assignment.SalesRepId == profile.StaffProfileId &&
+            assignment.EndsAt == null &&
+            _db.TerritoryAgencyAssignments.Any(territoryAgency =>
+              territoryAgency.TerritoryId == assignment.TerritoryId &&
+              territoryAgency.EndsAt == null &&
+              agencyIds.Contains(territoryAgency.AgencyId)))
+        ))
       .OrderBy(profile => profile.DisplayName)
       .Select(profile => new SalesRepSummary(
         profile.StaffProfileId,
