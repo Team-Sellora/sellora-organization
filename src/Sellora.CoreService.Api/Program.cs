@@ -74,8 +74,6 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddScoped<IOpenWorkChecker, StubOpenWorkChecker>();
-
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -124,12 +122,6 @@ builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
 builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService>();
 
 builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
-
-builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
-builder.Services.AddScoped<IAgencyReadService, AgencyReadService>();
-
-builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationService>();
-builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
