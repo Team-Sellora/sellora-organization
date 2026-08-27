@@ -162,6 +162,8 @@ builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssignmentCache>();
 
+builder.Services.AddScoped<ISalesRepAssignmentReadService, SalesRepAssignmentReadService>();
+
 builder.Host.UseSerilog((context, config) =>
     config
         .ReadFrom.Configuration(context.Configuration)
