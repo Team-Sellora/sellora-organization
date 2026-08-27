@@ -119,28 +119,6 @@ public sealed class SalesRepTerritoryAssignmentService
           assignment.EndsAt == null,
         cancellationToken);
 
-    if (territoryAssignment is not null)
-    {
-      var existingRep = await _db.StaffProfiles.SingleAsync(
-        profile => profile.StaffProfileId == territoryAssignment.SalesRepId,
-        cancellationToken);
-
-      _logger.LogWarning(
-        "Rejected Sales Rep assignment: AgencyOperator {OperatorId} attempted " +
-        "to assign SalesRep {SalesRepId} to territory {TerritoryId}, but it " +
-        "already has active SalesRep {ExistingSalesRepId}.",
-        operatorProfile.StaffProfileId,
-        request.SalesRepId,
-        territory.TerritoryId,
-        existingRep.StaffProfileId);
-
-      return AssignSalesRepToTerritoryResult
-        .TerritoryAlreadyHasActiveSalesRep(
-          territory.Name,
-          existingRep.DisplayName,
-          existingRep.StaffProfileId);
-    }
-
     var repAssignment = await _db.SalesRepTerritoryAssignments
       .SingleOrDefaultAsync(
         assignment =>
@@ -148,44 +126,55 @@ public sealed class SalesRepTerritoryAssignmentService
           assignment.EndsAt == null,
         cancellationToken);
 
-    if (repAssignment is not null)
+    // PUT remains idempotent when the requested binding already exists.
+    if (territoryAssignment is not null &&
+        territoryAssignment.SalesRepId == salesRep.StaffProfileId)
     {
-      var existingTerritory = await _db.Territories.SingleAsync(
-        candidate => candidate.TerritoryId == repAssignment.TerritoryId,
-        cancellationToken);
-
-      _logger.LogWarning(
-        "Rejected Sales Rep assignment: AgencyOperator {OperatorId} attempted " +
-        "to assign SalesRep {SalesRepId} to territory {TerritoryId}, but the " +
-        "rep already covers territory {ExistingTerritoryId}.",
-        operatorProfile.StaffProfileId,
-        salesRep.StaffProfileId,
-        territory.TerritoryId,
-        existingTerritory.TerritoryId);
-
-      return AssignSalesRepToTerritoryResult
-        .SalesRepAlreadyAssignedToTerritory(
-          salesRep.DisplayName,
-          existingTerritory.Code,
-          existingTerritory.Name);
+      return AssignSalesRepToTerritoryResult.Success(territoryAssignment);
     }
 
-    var assignment = new SalesRepTerritoryAssignment
-    {
-      AssignmentId = Guid.NewGuid(),
-      CompanyId = territory.CompanyId,
-      TerritoryId = territory.TerritoryId,
-      SalesRepId = salesRep.StaffProfileId,
-      StartsAt = DateTimeOffset.UtcNow,
-      EndsAt = null,
-      CreatedBy = callerSub
-    };
+    var assignmentsToEnd = new[] { territoryAssignment, repAssignment }
+      .Where(assignment => assignment is not null)
+      .Select(assignment => assignment!)
+      .DistinctBy(assignment => assignment.AssignmentId)
+      .ToList();
 
-    _db.SalesRepTerritoryAssignments.Add(assignment);
+    var now = DateTimeOffset.UtcNow;
+
+    await using var transaction = await _db.Database.BeginTransactionAsync(
+      cancellationToken);
 
     try
     {
+      foreach (var activeAssignment in assignmentsToEnd)
+      {
+        activeAssignment.EndsAt = now;
+      }
+
+      var assignment = new SalesRepTerritoryAssignment
+      {
+        AssignmentId = Guid.NewGuid(),
+        CompanyId = territory.CompanyId,
+        TerritoryId = territory.TerritoryId,
+        SalesRepId = salesRep.StaffProfileId,
+        StartsAt = now,
+        EndsAt = null,
+        CreatedBy = callerSub
+      };
+
+      _db.SalesRepTerritoryAssignments.Add(assignment);
+
       await _db.SaveChangesAsync(cancellationToken);
+      await transaction.CommitAsync(cancellationToken);
+
+      _logger.LogInformation(
+        "Sales Rep {SalesRepId} assigned to territory {TerritoryId}; " +
+        "{EndedAssignmentCount} previous active binding(s) preserved as history.",
+        salesRep.StaffProfileId,
+        territory.TerritoryId,
+        assignmentsToEnd.Count);
+
+      return AssignSalesRepToTerritoryResult.Success(assignment);
     }
     catch (DbUpdateException exception)
       when (exception.InnerException is PostgresException
@@ -193,17 +182,21 @@ public sealed class SalesRepTerritoryAssignmentService
         SqlState: PostgresErrorCodes.UniqueViolation
       })
     {
+      await transaction.RollbackAsync(cancellationToken);
+
       _logger.LogWarning(
         exception,
-        "Rejected concurrent Sales Rep assignment: AgencyOperator {OperatorId} " +
-        "attempted SalesRep {SalesRepId} to territory {TerritoryId}.",
-        operatorProfile.StaffProfileId,
+        "Concurrent Sales Rep reassignment conflict for SalesRep {SalesRepId} " +
+        "and territory {TerritoryId}.",
         salesRep.StaffProfileId,
         territory.TerritoryId);
 
       return AssignSalesRepToTerritoryResult.ConcurrentAssignmentConflict();
     }
-
-    return AssignSalesRepToTerritoryResult.Success(assignment);
+    catch
+    {
+      await transaction.RollbackAsync(cancellationToken);
+      throw;
+    }
   }
 }
