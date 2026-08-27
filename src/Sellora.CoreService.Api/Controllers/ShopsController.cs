@@ -33,6 +33,7 @@ public sealed class ShopsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
   public async Task<IActionResult> Register(
     [FromBody] RegisterShopRequestBody body,
     CancellationToken cancellationToken)
@@ -148,6 +149,7 @@ public sealed class ShopsController : ControllerBase
         body.TerritoryId,
         body.Name,
         body.OwnerName,
+        body.OwnerIdentitySub,
         body.OwnerEmail,
         body.OwnerPhone,
         body.Address,
@@ -191,6 +193,22 @@ public sealed class ShopsController : ControllerBase
         Detail = result.Message
       }),
 
+      RegisterShopOutcome.OwnerIdentitySubRequired => BadRequest(
+        new ProblemDetails
+        {
+          Status = StatusCodes.Status400BadRequest,
+          Title = "Missing shop owner identity",
+          Detail = result.Message
+        }),
+
+      RegisterShopOutcome.OwnerIdentityAlreadyLinked => Conflict(
+        new ProblemDetails
+        {
+          Status = StatusCodes.Status409Conflict,
+          Title = "Shop Owner identity already linked",
+          Detail = result.Message
+        }),
+
       _ => BadRequest(new ProblemDetails
       {
         Status = StatusCodes.Status400BadRequest,
@@ -206,6 +224,7 @@ public sealed class ShopsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
   [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
   public async Task<IActionResult> Update(
     Guid shopId,
     [FromBody] UpdateShopRequestBody body,
