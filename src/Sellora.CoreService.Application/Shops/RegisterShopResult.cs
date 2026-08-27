@@ -7,7 +7,9 @@ public enum RegisterShopOutcome
   Success,
   CallerNotAnActiveAgencyOperator,
   TerritoryNotFound,
-  TerritoryNotAssignedToCallerAgency
+  TerritoryNotAssignedToCallerAgency,
+  OwnerIdentitySubRequired,
+  OwnerIdentityAlreadyLinked
 }
 
 public sealed class RegisterShopResult
@@ -44,4 +46,15 @@ public sealed class RegisterShopResult
     new(
       RegisterShopOutcome.TerritoryNotAssignedToCallerAgency,
       $"Territory '{territoryId}' is not currently assigned to your agency.");
+
+  public static RegisterShopResult OwnerIdentitySubRequired() =>
+    new(
+      RegisterShopOutcome.OwnerIdentitySubRequired,
+      "ownerIdentitySub is required so the Shop Owner can access this shop.");
+
+  public static RegisterShopResult OwnerIdentityAlreadyLinked(
+    string ownerIdentitySub) =>
+    new(
+      RegisterShopOutcome.OwnerIdentityAlreadyLinked,
+      $"Shop Owner identity '{ownerIdentitySub}' is already linked to another shop.");
 }

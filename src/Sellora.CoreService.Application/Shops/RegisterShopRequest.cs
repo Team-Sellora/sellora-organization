@@ -8,6 +8,7 @@ public sealed record RegisterShopRequest(
   Guid TerritoryId,
   string Name,
   string? OwnerName,
+  string? OwnerIdentitySub,
   string? OwnerEmail,
   string? OwnerPhone,
   string Address,
