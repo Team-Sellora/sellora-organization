@@ -57,11 +57,8 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30),
         };
 
-        // DEV ONLY: Identity Server uses a self-signed cert, so the metadata/JWKS
-        // fetch over HTTPS would fail cert validation. Bypass it in Development.
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
         {
-            options.RequireHttpsMetadata = false;
             options.BackchannelHttpHandler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback =
@@ -76,6 +73,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddScoped<IOpenWorkChecker, StubOpenWorkChecker>();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -124,6 +124,12 @@ builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
 builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService>();
 
 builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
+
+builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
+builder.Services.AddScoped<IAgencyReadService, AgencyReadService>();
+
+builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationService>();
+builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
