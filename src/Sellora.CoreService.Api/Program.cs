@@ -25,6 +25,8 @@ using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Infrastructure.Territories;
 using Sellora.CoreService.Application.TerritoryAssignments;
 using Sellora.CoreService.Infrastructure.TerritoryAssignments;
+using Sellora.CoreService.Application.SalesRepAssignments;
+using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,6 +150,8 @@ builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationS
 builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 
 builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAssignmentService>();
+
+builder.Services.AddScoped<ISalesRepTerritoryAssignmentService, SalesRepTerritoryAssignmentService>();
 
 builder.Host.UseSerilog((context, config) =>
     config

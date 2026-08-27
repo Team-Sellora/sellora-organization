@@ -6,6 +6,8 @@ using Sellora.CoreService.Application.Common;
 using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Application.TerritoryAssignments;
+using Sellora.CoreService.Application.SalesRepAssignments;
+
 namespace Sellora.CoreService.Api.Controllers;
 
 [ApiController]
@@ -15,15 +17,18 @@ public sealed class TerritoriesController : ControllerBase
   private readonly ITerritoryRegistrationService _registrationService;
   private readonly ITerritoryReadService _readService;
   private readonly ITerritoryAgencyAssignmentService _assignmentService;
+  private readonly ISalesRepTerritoryAssignmentService _salesRepAssignmentService;
 
   public TerritoriesController(
     ITerritoryRegistrationService registrationService,
     ITerritoryReadService readService,
-    ITerritoryAgencyAssignmentService assignmentService)
+    ITerritoryAgencyAssignmentService assignmentService,
+    ISalesRepTerritoryAssignmentService salesRepAssignmentService)
   {
     _registrationService = registrationService;
     _readService = readService;
     _assignmentService = assignmentService;
+    _salesRepAssignmentService = salesRepAssignmentService;
   }
 
   /// <summary>
@@ -238,6 +243,79 @@ public sealed class TerritoriesController : ControllerBase
       {
         Status = StatusCodes.Status400BadRequest,
         Title = "Territory assignment rejected",
+        Detail = result.Message
+      })
+    };
+  }
+
+  [HttpPut("{territoryId:guid}/sales-rep")]
+  [Authorize(Policy = RolePolicies.RequireAgencyOperator)]
+  [ProducesResponseType(StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+  public async Task<IActionResult> AssignSalesRep(
+    Guid territoryId,
+    [FromBody] AssignSalesRepToTerritoryRequestBody body,
+    CancellationToken cancellationToken)
+  {
+    if (body is null || body.SalesRepId == Guid.Empty)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid Sales Rep assignment request",
+        Detail = "salesRepId is required."
+      });
+    }
+
+    var result = await _salesRepAssignmentService.AssignAsync(
+      new AssignSalesRepToTerritoryRequest(territoryId, body.SalesRepId),
+      cancellationToken);
+
+    return result.Outcome switch
+    {
+      AssignSalesRepToTerritoryOutcome.Success => Ok(new
+      {
+        result.Assignment!.AssignmentId,
+        result.Assignment.TerritoryId,
+        result.Assignment.SalesRepId,
+        result.Assignment.StartsAt
+      }),
+
+      AssignSalesRepToTerritoryOutcome.CallerNotAnActiveAgencyOperator or
+      AssignSalesRepToTerritoryOutcome.TerritoryNotAssignedToCallerAgency =>
+        StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+        {
+          Status = StatusCodes.Status403Forbidden,
+          Title = "Sales Rep assignment outside your scope",
+          Detail = result.Message
+        }),
+
+      AssignSalesRepToTerritoryOutcome.TerritoryNotFound or
+      AssignSalesRepToTerritoryOutcome.SalesRepNotFound =>
+        NotFound(new ProblemDetails
+        {
+          Status = StatusCodes.Status404NotFound,
+          Title = "Sales Rep assignment target not found",
+          Detail = result.Message
+        }),
+
+      AssignSalesRepToTerritoryOutcome.TerritoryAlreadyHasActiveSalesRep or
+      AssignSalesRepToTerritoryOutcome.SalesRepAlreadyAssignedToTerritory or
+      AssignSalesRepToTerritoryOutcome.ConcurrentAssignmentConflict =>
+        Conflict(new ProblemDetails
+        {
+          Status = StatusCodes.Status409Conflict,
+          Title = "Sales Rep assignment conflict",
+          Detail = result.Message
+        }),
+
+      _ => BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Sales Rep assignment rejected",
         Detail = result.Message
       })
     };
