@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Sellora.CoreService.Api.Authorization;
 using Sellora.CoreService.Api.Contracts;
 using Sellora.CoreService.Application.Shops;
+using Sellora.CoreService.Application.Shops;
+using Sellora.CoreService.Domain.Entities;
 
 namespace Sellora.CoreService.Api.Controllers;
 
@@ -17,15 +19,79 @@ public sealed class ShopsController : ControllerBase
   private const decimal SriLankaMaximumLongitude = 81.9m;
   private readonly IShopRegistrationService _registrationService;
   private readonly IShopUpdateService _updateService;
+  private readonly IShopReadService _readService;
 
   public ShopsController(
     IShopRegistrationService registrationService,
-    IShopUpdateService updateService)
+    IShopUpdateService updateService,
+    IShopReadService readService)
   {
     _registrationService = registrationService;
     _updateService = updateService;
+    _readService = readService;
   }
 
+  [HttpGet]
+  [Authorize(Policy = RolePolicies.RequireAgencyOperator)]
+  [ProducesResponseType(
+    typeof(PagedResponse<ShopResponse>),
+    StatusCodes.Status200OK)]
+  [ProducesResponseType(
+    typeof(ProblemDetails),
+    StatusCodes.Status400BadRequest)]
+  public async Task<IActionResult> List(
+    [FromQuery] ShopListQueryParams parameters,
+    CancellationToken cancellationToken)
+  {
+    var status = string.IsNullOrWhiteSpace(parameters.Status)
+      ? HierarchyStatus.Active
+      : parameters.Status.Trim();
+
+    if (status != HierarchyStatus.Active &&
+        status != HierarchyStatus.Inactive)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid status filter",
+        Detail = "status must be 'Active' or 'Inactive'."
+      });
+    }
+
+    var page = parameters.Page ?? 1;
+
+    if (page < 1)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid page",
+        Detail = "page must be greater than or equal to 1."
+      });
+    }
+
+    var pageSize = parameters.PageSize ?? 25;
+
+    if (pageSize < 1 || pageSize > 100)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid pageSize",
+        Detail = "pageSize must be between 1 and 100."
+      });
+    }
+
+    var pageResult = await _readService.ListAsync(
+      new ShopListQuery(
+        status,
+        parameters.TerritoryId,
+        page,
+        pageSize),
+      cancellationToken);
+
+    return Ok(pageResult);
+  }
 
   [HttpPost]
   [Authorize(Policy = RolePolicies.RequireAgencyOperator)]

@@ -133,6 +133,8 @@ builder.Services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
 
 builder.Services.AddScoped<IShopUpdateService, ShopUpdateService>();
 
+builder.Services.AddScoped<IShopReadService, ShopReadService>();
+
 builder.Host.UseSerilog((context, config) =>
     config
         .ReadFrom.Configuration(context.Configuration)
