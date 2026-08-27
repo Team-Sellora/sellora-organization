@@ -16,11 +16,16 @@ public sealed class ShopsController : ControllerBase
   private const decimal SriLankaMinimumLongitude = 79.4m;
   private const decimal SriLankaMaximumLongitude = 81.9m;
   private readonly IShopRegistrationService _registrationService;
+  private readonly IShopUpdateService _updateService;
 
-  public ShopsController(IShopRegistrationService registrationService)
+  public ShopsController(
+    IShopRegistrationService registrationService,
+    IShopUpdateService updateService)
   {
     _registrationService = registrationService;
+    _updateService = updateService;
   }
+
 
   [HttpPost]
   [Authorize(Policy = RolePolicies.RequireAgencyOperator)]
@@ -190,6 +195,97 @@ public sealed class ShopsController : ControllerBase
       {
         Status = StatusCodes.Status400BadRequest,
         Title = "Shop registration rejected",
+        Detail = result.Message
+      })
+    };
+  }
+
+  [HttpPut("{shopId:guid}")]
+  [Authorize(Policy = RolePolicies.RequireAgencyOperator)]
+  [ProducesResponseType(StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  public async Task<IActionResult> Update(
+    Guid shopId,
+    [FromBody] UpdateShopRequestBody body,
+    CancellationToken cancellationToken)
+  {
+    if (body is null ||
+        body.Latitude is null ||
+        body.Longitude is null ||
+        body.CreditLimit is null)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Missing shop update values",
+        Detail = "latitude, longitude, and creditLimit are required."
+      });
+    }
+
+    if (body.Latitude < SriLankaMinimumLatitude ||
+        body.Latitude > SriLankaMaximumLatitude ||
+        body.Longitude < SriLankaMinimumLongitude ||
+        body.Longitude > SriLankaMaximumLongitude)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid shop location",
+        Detail = "Coordinates must be within Sri Lanka."
+      });
+    }
+
+    if (body.CreditLimit <= 0)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid credit limit",
+        Detail = "creditLimit must be greater than zero."
+      });
+    }
+
+    var result = await _updateService.UpdateAsync(
+      new UpdateShopRequest(
+        shopId,
+        body.Latitude.Value,
+        body.Longitude.Value,
+        body.CreditLimit.Value),
+      cancellationToken);
+
+    return result.Outcome switch
+    {
+      UpdateShopOutcome.Success => Ok(new
+      {
+        result.Shop!.ShopId,
+        result.Shop.Latitude,
+        result.Shop.Longitude,
+        result.Shop.CreditLimit,
+        result.Shop.UpdatedAt
+      }),
+
+      UpdateShopOutcome.CallerNotAnActiveAgencyOperator or
+      UpdateShopOutcome.ShopOutsideCallerAgency =>
+        StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+        {
+          Status = StatusCodes.Status403Forbidden,
+          Title = "Shop update outside your scope",
+          Detail = result.Message
+        }),
+
+      UpdateShopOutcome.ShopNotFound => NotFound(new ProblemDetails
+      {
+        Status = StatusCodes.Status404NotFound,
+        Title = "Shop not found",
+        Detail = result.Message
+      }),
+
+      _ => BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Shop update rejected",
         Detail = result.Message
       })
     };
