@@ -25,6 +25,11 @@ using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Infrastructure.Territories;
 using Sellora.CoreService.Application.TerritoryAssignments;
 using Sellora.CoreService.Infrastructure.TerritoryAssignments;
+using Sellora.CoreService.Application.SalesRepAssignments;
+using Sellora.CoreService.Infrastructure.SalesRepAssignments;
+using Sellora.CoreService.Application.SalesRepAssignments;
+using Sellora.CoreService.Infrastructure.SalesRepAssignments;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,6 +153,16 @@ builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationS
 builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 
 builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAssignmentService>();
+
+builder.Services.AddScoped<ISalesRepTerritoryAssignmentService, SalesRepTerritoryAssignmentService>();
+
+builder.Services.AddScoped<IRepShopRelationshipVerifier, RepShopRelationshipVerifier>();
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssignmentCache>();
+
+builder.Services.AddScoped<ISalesRepAssignmentReadService, SalesRepAssignmentReadService>();
 
 builder.Host.UseSerilog((context, config) =>
     config
