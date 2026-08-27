@@ -60,13 +60,19 @@ public class AgencyConfiguration : IEntityTypeConfiguration<Agency>
       .IsRequired();
 
     builder.HasIndex(agency => new
-      {
-        agency.ProvinceId,
-        agency.Name
-      })
+    {
+      agency.ProvinceId,
+      agency.Name
+    })
       .IsUnique()
       .HasDatabaseName("uq_agency_province_name");
 
+    // uq_agency_province_name — enforces "at most one agency per (province,
+    // name)" at the DATABASE level. This is CSP-69's core deliverable:
+    // an application-level pre-check would race under concurrent load
+    // (two requests both pass, both insert), so the invariant lives here.
+    // The service catches the constraint violation and translates it into
+    // a 409 that names the existing occupant.
     builder.HasOne<Company>()
       .WithMany()
       .HasForeignKey(agency => agency.CompanyId)
