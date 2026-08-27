@@ -10,6 +10,11 @@ namespace Sellora.CoreService.Api.Controllers;
 [Route("api/shops")]
 public sealed class ShopsController : ControllerBase
 {
+
+  private const decimal SriLankaMinimumLatitude = 5.9m;
+  private const decimal SriLankaMaximumLatitude = 9.9m;
+  private const decimal SriLankaMinimumLongitude = 79.4m;
+  private const decimal SriLankaMaximumLongitude = 81.9m;
   private readonly IShopRegistrationService _registrationService;
 
   public ShopsController(IShopRegistrationService registrationService)
@@ -67,6 +72,72 @@ public sealed class ShopsController : ControllerBase
       });
     }
 
+    if (body.Latitude is null)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Missing shop location",
+        Detail = "latitude is required. GPS coordinates are mandatory for shop registration."
+      });
+    }
+
+    if (body.Longitude is null)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Missing shop location",
+        Detail = "longitude is required. GPS coordinates are mandatory for shop registration."
+      });
+    }
+
+    if (body.Latitude < SriLankaMinimumLatitude ||
+        body.Latitude > SriLankaMaximumLatitude)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid latitude",
+        Detail =
+          $"latitude must be between {SriLankaMinimumLatitude} and " +
+          $"{SriLankaMaximumLatitude}, within Sri Lanka."
+      });
+    }
+
+    if (body.Longitude < SriLankaMinimumLongitude ||
+        body.Longitude > SriLankaMaximumLongitude)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid longitude",
+        Detail =
+          $"longitude must be between {SriLankaMinimumLongitude} and " +
+          $"{SriLankaMaximumLongitude}, within Sri Lanka."
+      });
+    }
+
+    if (body.CreditLimit is null)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Missing credit limit",
+        Detail = "creditLimit is required."
+      });
+    }
+
+    if (body.CreditLimit <= 0)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid credit limit",
+        Detail = "creditLimit must be greater than zero."
+      });
+    }
+
     var result = await _registrationService.RegisterAsync(
       new RegisterShopRequest(
         body.TerritoryId,
@@ -75,11 +146,10 @@ public sealed class ShopsController : ControllerBase
         body.OwnerEmail,
         body.OwnerPhone,
         body.Address,
-        body.Latitude,
-        body.Longitude,
-        body.CreditLimit),
+        body.Latitude.Value,
+        body.Longitude.Value,
+        body.CreditLimit.Value),
       cancellationToken);
-
     return result.Outcome switch
     {
       RegisterShopOutcome.Success => Created(
