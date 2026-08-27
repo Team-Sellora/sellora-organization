@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Hierarchy;
 
 namespace Sellora.CoreService.Tests;
 
@@ -87,7 +88,8 @@ public sealed class ShopRegistrationEndpointTests
   private async Task<HttpResponseMessage> RegisterAsync(
     string subject,
     Guid territoryId,
-    string name)
+    string name,
+    string? ownerIdentitySub = null)
   {
     var token = TestTokenFactory.CreateToken(
       _factory.Issuer,
@@ -101,11 +103,14 @@ public sealed class ShopRegistrationEndpointTests
     request.Headers.Authorization =
       new AuthenticationHeaderValue("Bearer", token);
 
+    ownerIdentitySub ??= $"shop-owner-{Guid.NewGuid():N}";
+
     request.Content = JsonContent.Create(new
     {
       territoryId,
       name,
       ownerName = "Test Shop Owner",
+      ownerIdentitySub,
       ownerEmail = "owner@test.local",
       ownerPhone = "0771234567",
       address = "123 Test Road",
@@ -240,5 +245,61 @@ public sealed class ShopRegistrationEndpointTests
     return await db.Shops
       .IgnoreQueryFilters()
       .CountAsync();
+  }
+
+  [Fact]
+  public async Task Post_LinkedOwnerIdentity_AllowsShopOwnerTokenToResolveNewShop()
+  {
+    var ownerIdentitySub = $"shop-owner-{Guid.NewGuid():N}";
+
+    var registrationResponse = await RegisterAsync(
+      subject: HierarchyEndpointTestData.AgencyOperatorSubject,
+      territoryId: HierarchyEndpointTestData.NorthTerritoryId,
+      name: "Owner Linked Shop",
+      ownerIdentitySub: ownerIdentitySub);
+
+    Assert.Equal(HttpStatusCode.Created, registrationResponse.StatusCode);
+
+    using var registrationDocument = JsonDocument.Parse(
+      await registrationResponse.Content.ReadAsStringAsync());
+
+    var shopId = registrationDocument.RootElement
+      .GetProperty("shopId")
+      .GetGuid();
+
+    var shopOwnerToken = TestTokenFactory.CreateToken(
+      _factory.Issuer,
+      _factory.Audience,
+      role: "ShopOwner",
+      companyId: HierarchyEndpointTestData.CompanyId.ToString(),
+      sub: ownerIdentitySub);
+
+    var hierarchyRequest = new HttpRequestMessage(
+      HttpMethod.Get,
+      "/api/hierarchy");
+
+    hierarchyRequest.Headers.Authorization =
+      new AuthenticationHeaderValue("Bearer", shopOwnerToken);
+
+    var hierarchyResponse = await _factory
+      .CreateClient()
+      .SendAsync(hierarchyRequest);
+
+    Assert.Equal(HttpStatusCode.OK, hierarchyResponse.StatusCode);
+
+    var hierarchy = await hierarchyResponse.Content
+      .ReadFromJsonAsync<HierarchyTreeResponse>();
+
+    Assert.NotNull(hierarchy);
+
+    var visibleShops = hierarchy.Provinces
+      .SelectMany(province => province.Agencies)
+      .SelectMany(agency => agency.Territories)
+      .SelectMany(territory => territory.Shops)
+      .ToList();
+
+    var visibleShop = Assert.Single(visibleShops);
+
+    Assert.Equal(shopId, visibleShop.ShopId);
   }
 }
