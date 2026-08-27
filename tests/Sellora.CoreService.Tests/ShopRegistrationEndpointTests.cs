@@ -116,4 +116,129 @@ public sealed class ShopRegistrationEndpointTests
 
     return await _factory.CreateClient().SendAsync(request);
   }
+
+  [Fact]
+  public async Task Post_MissingLatitude_ReturnsBadRequestAndCreatesNothing()
+  {
+    var shopCountBefore = await CountShopsAsync();
+
+    var response = await SendRegistrationAsync(new
+    {
+      territoryId = HierarchyEndpointTestData.NorthTerritoryId,
+      name = "No GPS Shop",
+      ownerName = "Test Shop Owner",
+      ownerEmail = "owner@test.local",
+      ownerPhone = "0771234567",
+      address = "123 Test Road",
+      longitude = 79.861244m,
+      creditLimit = 10000m
+    });
+
+    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+
+    Assert.NotNull(problem);
+    Assert.Contains(
+      "latitude is required",
+      problem.Detail!,
+      StringComparison.OrdinalIgnoreCase);
+
+    Assert.Equal(shopCountBefore, await CountShopsAsync());
+  }
+
+  [Theory]
+  [InlineData(0.0, 0.0)]
+  [InlineData(51.5072, -0.1276)]
+  public async Task Post_CoordinatesOutsideSriLanka_ReturnsBadRequest(
+    decimal latitude,
+    decimal longitude)
+  {
+    var response = await SendRegistrationAsync(new
+    {
+      territoryId = HierarchyEndpointTestData.NorthTerritoryId,
+      name = $"Invalid GPS Shop {latitude}",
+      ownerName = "Test Shop Owner",
+      ownerEmail = "owner@test.local",
+      ownerPhone = "0771234567",
+      address = "123 Test Road",
+      latitude,
+      longitude,
+      creditLimit = 10000m
+    });
+
+    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+
+    Assert.NotNull(problem);
+    Assert.Contains(
+      "within Sri Lanka",
+      problem.Detail!,
+      StringComparison.OrdinalIgnoreCase);
+  }
+
+  [Theory]
+  [InlineData(0.0)]
+  [InlineData(-1.0)]
+  public async Task Post_NonPositiveCreditLimit_ReturnsBadRequest(
+    decimal creditLimit)
+  {
+    var shopCountBefore = await CountShopsAsync();
+
+    var response = await SendRegistrationAsync(new
+    {
+      territoryId = HierarchyEndpointTestData.NorthTerritoryId,
+      name = $"Invalid Credit Shop {creditLimit}",
+      ownerName = "Test Shop Owner",
+      ownerEmail = "owner@test.local",
+      ownerPhone = "0771234567",
+      address = "123 Test Road",
+      latitude = 6.927079m,
+      longitude = 79.861244m,
+      creditLimit
+    });
+
+    Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+    var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+
+    Assert.NotNull(problem);
+    Assert.Contains(
+      "must be greater than zero",
+      problem.Detail!,
+      StringComparison.OrdinalIgnoreCase);
+
+    Assert.Equal(shopCountBefore, await CountShopsAsync());
+  }
+
+  private async Task<HttpResponseMessage> SendRegistrationAsync(object body)
+  {
+    var token = TestTokenFactory.CreateToken(
+      _factory.Issuer,
+      _factory.Audience,
+      role: "AgencyOperator",
+      companyId: HierarchyEndpointTestData.CompanyId.ToString(),
+      sub: HierarchyEndpointTestData.AgencyOperatorSubject);
+
+    var request = new HttpRequestMessage(HttpMethod.Post, "/api/shops");
+
+    request.Headers.Authorization =
+      new AuthenticationHeaderValue("Bearer", token);
+
+    request.Content = JsonContent.Create(body);
+
+    return await _factory.CreateClient().SendAsync(request);
+  }
+
+  private async Task<int> CountShopsAsync()
+  {
+    using var scope = _factory.Services.CreateScope();
+
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+    return await db.Shops
+      .IgnoreQueryFilters()
+      .CountAsync();
+  }
 }
