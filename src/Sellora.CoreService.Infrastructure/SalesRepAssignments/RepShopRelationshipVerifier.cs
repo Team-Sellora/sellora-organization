@@ -9,10 +9,14 @@ public sealed class RepShopRelationshipVerifier
   : IRepShopRelationshipVerifier
 {
   private readonly CoreDbContext _db;
+  private readonly IRepTerritoryAssignmentCache _assignmentCache;
 
-  public RepShopRelationshipVerifier(CoreDbContext db)
+  public RepShopRelationshipVerifier(
+    CoreDbContext db,
+    IRepTerritoryAssignmentCache assignmentCache)
   {
     _db = db;
+    _assignmentCache = assignmentCache;
   }
 
   public async Task<VerifyRepShopRelationshipResponse> VerifyAsync(
@@ -20,6 +24,12 @@ public sealed class RepShopRelationshipVerifier
     Guid shopId,
     CancellationToken cancellationToken = default)
   {
+
+    var activeTerritoryId =
+      await _assignmentCache.GetActiveTerritoryIdAsync(
+        salesRepId,
+        cancellationToken);
+
     // One database round trip. PostgreSQL can use the shop primary key and
     // active-territory partial index for the correlated EXISTS check.
     var shop = await _db.Shops
@@ -31,11 +41,7 @@ public sealed class RepShopRelationshipVerifier
         TerritoryIsActive = _db.Territories.Any(territory =>
           territory.TerritoryId == candidate.TerritoryId &&
           territory.Status == HierarchyStatus.Active),
-        RepCoversTerritory = _db.SalesRepTerritoryAssignments.Any(
-          assignment =>
-            assignment.SalesRepId == salesRepId &&
-            assignment.TerritoryId == candidate.TerritoryId &&
-            assignment.EndsAt == null)
+        RepCoversTerritory = activeTerritoryId == candidate.TerritoryId
       })
       .SingleOrDefaultAsync(cancellationToken);
 

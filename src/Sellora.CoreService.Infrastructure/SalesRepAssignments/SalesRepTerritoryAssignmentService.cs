@@ -15,15 +15,18 @@ public sealed class SalesRepTerritoryAssignmentService
   private readonly CoreDbContext _db;
   private readonly ICurrentUserContext _currentUser;
   private readonly ILogger<SalesRepTerritoryAssignmentService> _logger;
+  private readonly IRepTerritoryAssignmentCache _assignmentCache;
 
   public SalesRepTerritoryAssignmentService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
-    ILogger<SalesRepTerritoryAssignmentService> logger)
+    ILogger<SalesRepTerritoryAssignmentService> logger,
+    IRepTerritoryAssignmentCache assignmentCache)
   {
     _db = db;
     _currentUser = currentUser;
     _logger = logger;
+    _assignmentCache = assignmentCache;
   }
 
   public async Task<AssignSalesRepToTerritoryResult> AssignAsync(
@@ -166,6 +169,17 @@ public sealed class SalesRepTerritoryAssignmentService
 
       await _db.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
+
+      foreach (var endedAssignment in assignmentsToEnd)
+      {
+        _assignmentCache.Invalidate(
+          endedAssignment.SalesRepId,
+          endedAssignment.TerritoryId);
+      }
+
+      _assignmentCache.Invalidate(
+        assignment.SalesRepId,
+        assignment.TerritoryId);
 
       _logger.LogInformation(
         "Sales Rep {SalesRepId} assigned to territory {TerritoryId}; " +
