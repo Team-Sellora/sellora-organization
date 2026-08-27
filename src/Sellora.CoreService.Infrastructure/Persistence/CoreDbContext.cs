@@ -54,6 +54,9 @@ public class CoreDbContext : DbContext
   public DbSet<OutboxMessage>
     OutboxMessages => Set<OutboxMessage>();
 
+  public DbSet<AuditEntry>
+    AuditEntries => Set<AuditEntry>();
+
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);

@@ -17,6 +17,8 @@ using Sellora.CoreService.Application.Provinces;
 using Sellora.CoreService.Infrastructure.Provinces;
 using Sellora.CoreService.Application.AreaManagers;
 using Sellora.CoreService.Infrastructure.AreaManagers;
+using Sellora.CoreService.Application.Shops;
+using Sellora.CoreService.Infrastructure.Shops;
 using Sellora.CoreService.Application.Agencies;
 using Sellora.CoreService.Infrastructure.Agencies;
 using Sellora.CoreService.Application.Territories;
@@ -129,15 +131,21 @@ builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService
 
 builder.Services.AddScoped<IProvinceReadService, ProvinceReadService>();
 
+builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
+
+builder.Services.AddScoped<IAreaManagerReadService, AreaManagerReadService>();
+
+builder.Services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
+
+builder.Services.AddScoped<IShopUpdateService, ShopUpdateService>();
+
+builder.Services.AddScoped<IShopReadService, ShopReadService>();
+
 builder.Services.AddScoped<IAgencyRegistrationService, AgencyRegistrationService>();
 builder.Services.AddScoped<IAgencyReadService, AgencyReadService>();
 
 builder.Services.AddScoped<ITerritoryRegistrationService, TerritoryRegistrationService>();
 builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
-
-builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
-
-builder.Services.AddScoped<IAreaManagerReadService, AreaManagerReadService>();
 
 builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAssignmentService>();
 
