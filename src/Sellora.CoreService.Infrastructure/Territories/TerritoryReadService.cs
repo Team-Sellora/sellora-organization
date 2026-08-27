@@ -78,6 +78,22 @@ public sealed class TerritoryReadService : ITerritoryReadService
       q = q.Where(t => t.ProvinceId == filterProvinceId);
     }
 
+    if (query.Assigned is true)
+    {
+      q = q.Where(territory =>
+        _db.TerritoryAgencyAssignments.Any(assignment =>
+          assignment.TerritoryId == territory.TerritoryId &&
+          assignment.EndsAt == null));
+    }
+
+    if (query.Assigned is false)
+    {
+      q = q.Where(territory =>
+        !_db.TerritoryAgencyAssignments.Any(assignment =>
+          assignment.TerritoryId == territory.TerritoryId &&
+          assignment.EndsAt == null));
+    }
+
     var totalCount = await q.CountAsync(cancellationToken);
 
     // Sort by Code — territory codes are the operational identifier

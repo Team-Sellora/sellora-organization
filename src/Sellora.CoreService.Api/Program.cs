@@ -21,6 +21,8 @@ using Sellora.CoreService.Application.Agencies;
 using Sellora.CoreService.Infrastructure.Agencies;
 using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Infrastructure.Territories;
+using Sellora.CoreService.Application.TerritoryAssignments;
+using Sellora.CoreService.Infrastructure.TerritoryAssignments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,6 +80,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddScoped<IOpenWorkChecker, StubOpenWorkChecker>();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -136,6 +141,8 @@ builder.Services.AddScoped<ITerritoryReadService, TerritoryReadService>();
 builder.Services.AddScoped<IHierarchyDeactivationService, HierarchyDeactivationService>();
 
 builder.Services.AddScoped<IAreaManagerReadService, AreaManagerReadService>();
+
+builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAssignmentService>();
 
 builder.Host.UseSerilog((context, config) =>
     config

@@ -8,4 +8,5 @@ public sealed record TerritoryListQuery(
   string Status,
   Guid? ProvinceId,
   int Page,
-  int PageSize);
+  int PageSize,
+  bool? Assigned = null);

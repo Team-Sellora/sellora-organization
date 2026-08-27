@@ -5,7 +5,7 @@ using Sellora.CoreService.Api.Contracts;
 using Sellora.CoreService.Application.Common;
 using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Domain.Entities;
-
+using Sellora.CoreService.Application.TerritoryAssignments;
 namespace Sellora.CoreService.Api.Controllers;
 
 [ApiController]
@@ -14,13 +14,16 @@ public sealed class TerritoriesController : ControllerBase
 {
   private readonly ITerritoryRegistrationService _registrationService;
   private readonly ITerritoryReadService _readService;
+  private readonly ITerritoryAgencyAssignmentService _assignmentService;
 
   public TerritoriesController(
     ITerritoryRegistrationService registrationService,
-    ITerritoryReadService readService)
+    ITerritoryReadService readService,
+    ITerritoryAgencyAssignmentService assignmentService)
   {
     _registrationService = registrationService;
     _readService = readService;
+    _assignmentService = assignmentService;
   }
 
   /// <summary>
@@ -53,7 +56,8 @@ public sealed class TerritoriesController : ControllerBase
         normalised.Status,
         normalised.ProvinceId,
         normalised.Page,
-        normalised.PageSize),
+        normalised.PageSize,
+        normalised.Assigned),
       cancellationToken);
 
     return Ok(page);
@@ -158,6 +162,87 @@ public sealed class TerritoriesController : ControllerBase
     };
   }
 
+  [HttpPut("{territoryId:guid}/agency")]
+  [Authorize(Policy = RolePolicies.RequireAreaManager)]
+  [ProducesResponseType(StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  [ProducesResponseType(
+  typeof(ProblemDetails),
+  StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(
+  typeof(ProblemDetails),
+  StatusCodes.Status409Conflict)]
+  public async Task<IActionResult> AssignAgency(
+    Guid territoryId,
+    [FromBody] AssignTerritoryAgencyRequestBody body,
+    CancellationToken cancellationToken)
+  {
+    if (body is null || body.AgencyId == Guid.Empty)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid assignment request",
+        Detail = "agencyId is required."
+      });
+    }
+
+    var result = await _assignmentService.AssignAsync(
+      new AssignTerritoryAgencyRequest(territoryId, body.AgencyId),
+      cancellationToken);
+
+    return result.Outcome switch
+    {
+      AssignTerritoryAgencyOutcome.Success => Ok(new
+      {
+        result.Assignment!.AssignmentId,
+        result.Assignment.TerritoryId,
+        result.Assignment.AgencyId,
+        result.Assignment.StartsAt
+      }),
+
+      AssignTerritoryAgencyOutcome.CallerNotAnActiveAreaManager or
+      AssignTerritoryAgencyOutcome.TerritoryNotInManagedProvinces or
+      AssignTerritoryAgencyOutcome.AgencyNotInManagedProvinces or
+      AssignTerritoryAgencyOutcome.AgencyNotInTerritoryProvince =>
+        StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+        {
+          Status = StatusCodes.Status403Forbidden,
+          Title = "Territory assignment outside your scope",
+          Detail = result.Message
+        }),
+
+      AssignTerritoryAgencyOutcome.OpenWorkBlocksReassignment =>
+        Conflict(new ProblemDetails
+        {
+          Status = StatusCodes.Status409Conflict,
+          Title = "Territory reassignment blocked by open work",
+          Detail = result.Message,
+          Extensions =
+          {
+            ["blockingReferences"] = result.BlockingReferences
+          }
+        }),
+
+      AssignTerritoryAgencyOutcome.TerritoryNotFound or
+      AssignTerritoryAgencyOutcome.AgencyNotFound =>
+        NotFound(new ProblemDetails
+        {
+          Status = StatusCodes.Status404NotFound,
+          Title = "Assignment target not found",
+          Detail = result.Message
+        }),
+
+      _ => BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Territory assignment rejected",
+        Detail = result.Message
+      })
+    };
+  }
+
   /// <summary>
   /// Normalises and validates the raw query-string parameters. Same shape
   /// as AgenciesController's helper; kept local so each endpoint owns its
@@ -165,7 +250,13 @@ public sealed class TerritoriesController : ControllerBase
   /// </summary>
   private static bool TryNormaliseListQuery(
     TerritoryListQueryParams parameters,
-    out (string Status, Guid? ProvinceId, int Page, int PageSize) normalised,
+    out (
+      string Status,
+      Guid? ProvinceId,
+      int Page,
+      int PageSize,
+      bool? Assigned
+    ) normalised,
     out IActionResult? badRequest)
   {
     normalised = default;
@@ -214,7 +305,13 @@ public sealed class TerritoriesController : ControllerBase
       return false;
     }
 
-    normalised = (status, parameters.ProvinceId, page, pageSize);
+    normalised = (
+      status,
+      parameters.ProvinceId,
+      page,
+      pageSize,
+      parameters.Assigned
+    );
     return true;
   }
 }
