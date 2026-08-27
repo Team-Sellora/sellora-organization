@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Sellora.CoreService.Api.Authorization;
 using Sellora.CoreService.Api.Contracts;
 using Sellora.CoreService.Application.Shops;
-using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Domain.Entities;
 
 namespace Sellora.CoreService.Api.Controllers;
