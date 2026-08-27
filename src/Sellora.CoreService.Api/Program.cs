@@ -131,6 +131,8 @@ builder.Services.AddScoped<IAreaManagerReadService, AreaManagerReadService>();
 
 builder.Services.AddScoped<IShopRegistrationService, ShopRegistrationService>();
 
+builder.Services.AddScoped<IShopUpdateService, ShopUpdateService>();
+
 builder.Host.UseSerilog((context, config) =>
     config
         .ReadFrom.Configuration(context.Configuration)
