@@ -29,6 +29,7 @@ using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Infrastructure.SalesRepAssignments;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -156,6 +157,10 @@ builder.Services.AddScoped<ITerritoryAgencyAssignmentService, TerritoryAgencyAss
 builder.Services.AddScoped<ISalesRepTerritoryAssignmentService, SalesRepTerritoryAssignmentService>();
 
 builder.Services.AddScoped<IRepShopRelationshipVerifier, RepShopRelationshipVerifier>();
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssignmentCache>();
 
 builder.Host.UseSerilog((context, config) =>
     config
