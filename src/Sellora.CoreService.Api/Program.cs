@@ -61,11 +61,8 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30),
         };
 
-        // DEV ONLY: Identity Server uses a self-signed cert, so the metadata/JWKS
-        // fetch over HTTPS would fail cert validation. Bypass it in Development.
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
         {
-            options.RequireHttpsMetadata = false;
             options.BackchannelHttpHandler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback =
