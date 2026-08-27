@@ -90,6 +90,24 @@ public sealed class ShopRegistrationService : IShopRegistrationService
         territory.TerritoryId);
     }
 
+    if (string.IsNullOrWhiteSpace(request.OwnerIdentitySub))
+    {
+      return RegisterShopResult.OwnerIdentitySubRequired();
+    }
+
+    var ownerIdentitySub = request.OwnerIdentitySub.Trim();
+
+    var ownerIdentityAlreadyLinked = await _db.Shops
+      .AnyAsync(
+        shop => shop.OwnerIdentitySub == ownerIdentitySub,
+        cancellationToken);
+
+    if (ownerIdentityAlreadyLinked)
+    {
+      return RegisterShopResult.OwnerIdentityAlreadyLinked(
+        ownerIdentitySub);
+    }
+
     var shop = new Shop
     {
       ShopId = Guid.NewGuid(),
@@ -97,6 +115,7 @@ public sealed class ShopRegistrationService : IShopRegistrationService
       TerritoryId = territory.TerritoryId,
       Name = request.Name.Trim(),
       OwnerName = request.OwnerName?.Trim(),
+      OwnerIdentitySub = ownerIdentitySub,
       OwnerEmail = request.OwnerEmail?.Trim(),
       OwnerPhone = request.OwnerPhone?.Trim(),
       Address = request.Address.Trim(),
