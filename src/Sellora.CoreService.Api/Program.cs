@@ -33,6 +33,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Sellora.CoreService.Application.Outbox;
 using Sellora.CoreService.Infrastructure.Outbox;
 using Sellora.CoreService.Api.Outbox;
+using Sellora.CoreService.Infrastructure.Persistence.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -228,7 +229,16 @@ if (!app.Environment.IsEnvironment("Testing"))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
     await db.Database.MigrateAsync();
+
+    // Seed predictable demo data only in the Azure staging slot.
+    // The seeder checks for SELLORA-DEMO first, so repeated restarts
+    // do not duplicate rows.
+    if (app.Environment.IsStaging())
+    {
+        await DevelopmentOrganizationSeeder.SeedAsync(db);
+    }
 }
 
 if (app.Environment.IsDevelopment())
