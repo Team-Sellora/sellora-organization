@@ -80,6 +80,28 @@ public sealed class SalesRepTerritoryReassignmentEndpointTests
     Assert.Equal(1, activeRepBindings);
     Assert.Equal(1, activeTerritoryBindings);
     Assert.Equal(0, oldTerritoryActiveBindings);
+
+    var salesRepEventsDb = await db.OutboxMessages
+      .IgnoreQueryFilters()
+      .Where(message =>
+        message.EventType == "SalesRepAssigned" &&
+        message.AggregateId == salesRepId)
+      .ToListAsync();
+
+    var salesRepEvents = salesRepEventsDb
+      .OrderBy(message => message.OccurredAt)
+      .ToList();
+
+    Assert.Equal(2, salesRepEvents.Count);
+
+    await OutboxEventAssertions.AssertEventAsync(
+      db,
+      "SalesRepAssigned",
+      HierarchyEndpointTestData.CompanyId,
+      salesRepId,
+      ("salesRepId", salesRepId),
+      ("territoryId", secondTerritoryId),
+      ("agencyId", HierarchyEndpointTestData.NorthAgencyId));
   }
 
   private async Task<HttpResponseMessage> PutAsync(

@@ -54,6 +54,15 @@ public sealed class TerritoryAgencyAssignmentEndpointTests
     Assert.Equal(
       HierarchyEndpointTestData.AreaManagerSubject,
       assignment.CreatedBy);
+
+    await OutboxEventAssertions.AssertEventAsync(
+      db,
+      "TerritoryAssignedToAgency",
+      HierarchyEndpointTestData.CompanyId,
+      territoryId,
+      ("territoryId", territoryId),
+      ("agencyId", agencyId),
+      ("provinceId", provinceId));
   }
 
   [Fact]

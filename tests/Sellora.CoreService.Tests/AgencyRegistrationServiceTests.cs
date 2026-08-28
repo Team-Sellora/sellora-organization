@@ -129,6 +129,15 @@ public sealed class AgencyRegistrationServiceTests
 
     await using var verifyDb = _fixture.CreateDbContext(_companyId);
 
+    await OutboxEventAssertions.AssertEventAsync(
+      verifyDb,
+      "AgencyRegistered",
+      _companyId,
+      first.Agency!.AgencyId,
+      ("agencyId", first.Agency.AgencyId),
+      ("provinceId", _westernProvinceId),
+      ("operatorId", _operatorProfileId));
+
     var link = await verifyDb.AgencyOperatorAssignments
       .SingleAsync(assignment =>
         assignment.AgencyId == first.Agency!.AgencyId &&

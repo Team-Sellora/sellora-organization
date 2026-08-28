@@ -141,5 +141,14 @@ public sealed class ShopUpdateEndpointTests
     Assert.Equal(newLongitude, updatedShop.Longitude);
     Assert.Equal(newCreditLimit, updatedShop.CreditLimit);
     Assert.NotNull(updatedShop.UpdatedAt);
+
+    await OutboxEventAssertions.AssertEventAsync(
+      db,
+      "ShopUpdated",
+      HierarchyEndpointTestData.CompanyId,
+      HierarchyEndpointTestData.NorthShopId,
+      ("shopId", HierarchyEndpointTestData.NorthShopId),
+      ("agencyId", HierarchyEndpointTestData.NorthAgencyId),
+      ("territoryId", HierarchyEndpointTestData.NorthTerritoryId));
   }
 }

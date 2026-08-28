@@ -50,6 +50,12 @@ public sealed class HierarchyDeactivationTests
       HierarchyStatus.Inactive,
       agency.Status);
 
+    await OutboxEventAssertions.AssertEventAsync(
+      db,
+      "HierarchyEntityDeactivated",
+      companyId,
+      seed.AgencyId);
+
     // The inactive agency is excluded when an active-list query is used.
     var appearsInActiveList = await db.Agencies
       .AnyAsync(candidate =>
