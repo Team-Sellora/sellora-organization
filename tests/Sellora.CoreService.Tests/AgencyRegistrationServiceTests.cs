@@ -7,9 +7,11 @@ using Sellora.CoreService.Application.Identity;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Agencies;
+using Sellora.CoreService.Infrastructure.Outbox;
 using Sellora.CoreService.Infrastructure.Persistence;
 using Xunit;
 using Sellora.CoreService.Tests;
+using Sellora.CoreService.Application.Outbox;
 
 namespace Sellora.CoreService.Tests.Agencies;
 
@@ -224,10 +226,16 @@ public sealed class AgencyRegistrationServiceTests
       CoreDbContext db,
       ICurrentUserContext currentUser)
     {
+      var correlationAccessor = new FakeCorrelationIdAccessor();
+      var outboxWriter = new EntityFrameworkOutboxWriter(db, correlationAccessor);
+      var eventFactory = new HierarchyEventFactory(correlationAccessor);
+
       Service = new AgencyRegistrationService(
         db,
         currentUser,
-        NullLogger<AgencyRegistrationService>.Instance);
+        NullLogger<AgencyRegistrationService>.Instance,
+        outboxWriter,
+        eventFactory);
     }
   }
 
@@ -236,5 +244,10 @@ public sealed class AgencyRegistrationServiceTests
     public FakeCurrentUserContext(string subject) { Subject = subject; }
     public string? Subject { get; }
     public string? Role => Roles.AreaManager;
+  }
+
+  private sealed class FakeCorrelationIdAccessor : ICorrelationIdAccessor
+  {
+    public string GetCorrelationId() => "test-correlation-id";
   }
 }
