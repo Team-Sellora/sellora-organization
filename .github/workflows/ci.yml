@@ -61,14 +61,52 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.403
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Cache SonarQube Cloud packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarQube Cloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ runner.temp }}/scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarQube Cloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ${{ runner.temp }}/scanner
+          dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}/scanner
+
       - name: Restore dependencies
         run: dotnet restore Sellora.CoreService.sln
+
+      - name: SonarQube begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ${{ runner.temp }}/scanner/dotnet-sonarscanner begin \
+            /k:"Team-Sellora_sellora-organization" \
+            /o:"team-sellora" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       - name: Build solution
         run: dotnet build Sellora.CoreService.sln --configuration Release --no-restore
@@ -98,6 +136,14 @@ jobs:
             --no-build \
             --logger "trx;LogFileName=test-results.trx" \
             --results-directory ./TestResults
+
+      - name: SonarQube end
+        if: always()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ${{ runner.temp }}/scanner/dotnet-sonarscanner end \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       - name: Build Docker image
         run: |
