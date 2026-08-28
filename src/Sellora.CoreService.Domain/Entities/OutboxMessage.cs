@@ -13,7 +13,7 @@ public class OutboxMessage : ITenantScoped
   // Mapped to PostgreSQL jsonb through Fluent configuration.
   public string Payload { get; set; } = string.Empty;
 
-  public Guid CorrelationId { get; set; }
+  public string CorrelationId { get; set; } = string.Empty;
 
   public DateTimeOffset OccurredAt { get; set; }
 

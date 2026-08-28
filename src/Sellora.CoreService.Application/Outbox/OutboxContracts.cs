@@ -7,8 +7,12 @@ public sealed record NewOutboxMessage(
   string EventType,
   string SchemaVersion,
   string Payload,
-  Guid CorrelationId,
   DateTimeOffset OccurredAt);
+
+public interface ICorrelationIdAccessor
+{
+  string GetCorrelationId();
+}
 
 public interface IOutboxWriter
 {
@@ -22,7 +26,7 @@ public sealed record OutboxMessageToPublish(
   Guid CompanyId,
   Guid AggregateId,
   string Payload,
-  Guid CorrelationId,
+  string CorrelationId,
   DateTimeOffset OccurredAt);
 
 public interface IEventPublisher

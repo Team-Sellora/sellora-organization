@@ -51,7 +51,8 @@ public class OutboxMessageConfiguration
 
     builder.Property(message => message.CorrelationId)
       .HasColumnName("correlation_id")
-      .HasColumnType("uuid")
+      .HasColumnType("text")
+      .HasMaxLength(128)
       .IsRequired();
 
     builder.Property(message => message.OccurredAt)
