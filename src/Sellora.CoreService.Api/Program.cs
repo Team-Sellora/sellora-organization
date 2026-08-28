@@ -152,6 +152,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
 builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
+builder.Services.AddScoped<IHierarchyRollUpService, HierarchyRollUpService>();
 
 builder.Services.AddScoped<IProvinceAssignmentService, ProvinceAssignmentService>();
 
