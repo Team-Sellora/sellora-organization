@@ -32,6 +32,7 @@ using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Microsoft.Extensions.Caching.Memory;
 using Sellora.CoreService.Application.Outbox;
 using Sellora.CoreService.Infrastructure.Outbox;
+using Sellora.CoreService.Api.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -179,6 +180,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssignmentCache>();
 
 builder.Services.AddScoped<ISalesRepAssignmentReadService, SalesRepAssignmentReadService>();
+
+builder.Services.AddScoped<ICorrelationIdAccessor, HttpCorrelationIdAccessor>();
 
 builder.Host.UseSerilog((context, config) =>
     config

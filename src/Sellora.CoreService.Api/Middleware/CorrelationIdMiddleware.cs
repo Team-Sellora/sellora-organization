@@ -10,6 +10,7 @@ namespace Sellora.CoreService.Api.Middleware;
 /// </summary>
 public class CorrelationIdMiddleware
 {
+  public const string ItemKey = "Sellora.CorrelationId";
   private const string HeaderName = "X-Correlation-ID";
   private readonly RequestDelegate _next;
 
@@ -24,7 +25,7 @@ public class CorrelationIdMiddleware
 
     // Return it on the response so clients/other services can correlate.
     context.Response.Headers[HeaderName] = correlationId;
-
+    context.Items[ItemKey] = correlationId;
     // Push into the log context: every log written during this request
     // will automatically include CorrelationId.
     using (LogContext.PushProperty("CorrelationId", correlationId))

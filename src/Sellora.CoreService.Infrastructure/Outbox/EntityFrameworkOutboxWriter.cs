@@ -7,10 +7,14 @@ namespace Sellora.CoreService.Infrastructure.Outbox;
 public sealed class EntityFrameworkOutboxWriter : IOutboxWriter
 {
   private readonly CoreDbContext _db;
+  private readonly ICorrelationIdAccessor _correlationIdAccessor;
 
-  public EntityFrameworkOutboxWriter(CoreDbContext db)
+  public EntityFrameworkOutboxWriter(
+    CoreDbContext db,
+    ICorrelationIdAccessor correlationIdAccessor)
   {
     _db = db;
+    _correlationIdAccessor = correlationIdAccessor;
   }
 
   public void Enqueue(NewOutboxMessage message)
@@ -24,7 +28,7 @@ public sealed class EntityFrameworkOutboxWriter : IOutboxWriter
       EventType = message.EventType,
       SchemaVersion = message.SchemaVersion,
       Payload = message.Payload,
-      CorrelationId = message.CorrelationId,
+      CorrelationId = _correlationIdAccessor.GetCorrelationId(),
       OccurredAt = message.OccurredAt,
       NextAttemptAt = message.OccurredAt,
       AttemptCount = 0
