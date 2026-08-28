@@ -14,6 +14,20 @@ public class OutboxMessage : ITenantScoped
   public string Payload { get; set; } = string.Empty;
 
   public Guid CorrelationId { get; set; }
+
   public DateTimeOffset OccurredAt { get; set; }
+
   public DateTimeOffset? PublishedAt { get; set; }
+
+  public int AttemptCount { get; set; }
+
+  public string? LastError { get; set; }
+
+  public DateTimeOffset NextAttemptAt { get; set; }
+
+  public Guid? LeaseId { get; set; }
+
+  public DateTimeOffset? LeaseExpiresAt { get; set; }
+
+  public string SchemaVersion { get; set; } = "1.0";
 }
