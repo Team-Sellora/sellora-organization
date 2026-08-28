@@ -16,4 +16,8 @@ public interface IProvinceAssignmentService
   Task<AssignAreaManagerResult> AssignAreaManagerAsync(
     AssignAreaManagerRequest request,
     CancellationToken cancellationToken = default);
+
+  Task<UpdateAreaManagerReportsToResult> UpdateAreaManagerReportsToAsync(
+    UpdateAreaManagerReportsToRequest request,
+    CancellationToken cancellationToken = default);
 }
