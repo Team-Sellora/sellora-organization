@@ -18,6 +18,7 @@ public sealed class PostgreSqlConstraintFixture : IAsyncLifetime
       .WithUsername("sellora_test")
       .WithPassword("sellora_test_password")
       .Build();
+  public string ConnectionString => _database.GetConnectionString();
 
   public async Task InitializeAsync()
   {

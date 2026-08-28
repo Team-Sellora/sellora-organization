@@ -48,6 +48,15 @@ public sealed class ShopRegistrationEndpointTests
     Assert.Equal(HierarchyEndpointTestData.NorthTerritoryId, shop.TerritoryId);
     Assert.Equal("New North Shop", shop.Name);
     Assert.Equal("Active", shop.Status);
+
+    await OutboxEventAssertions.AssertEventAsync(
+      db,
+      "ShopRegistered",
+      HierarchyEndpointTestData.CompanyId,
+      shopId,
+      ("shopId", shopId),
+      ("agencyId", HierarchyEndpointTestData.NorthAgencyId),
+      ("territoryId", HierarchyEndpointTestData.NorthTerritoryId));
   }
 
   [Fact]

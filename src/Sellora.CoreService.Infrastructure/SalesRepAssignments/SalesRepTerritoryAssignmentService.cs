@@ -6,6 +6,7 @@ using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Outbox;
 
 namespace Sellora.CoreService.Infrastructure.SalesRepAssignments;
 
@@ -16,17 +17,23 @@ public sealed class SalesRepTerritoryAssignmentService
   private readonly ICurrentUserContext _currentUser;
   private readonly ILogger<SalesRepTerritoryAssignmentService> _logger;
   private readonly IRepTerritoryAssignmentCache _assignmentCache;
+  private readonly IOutboxWriter _outboxWriter;
+  private readonly IHierarchyEventFactory _hierarchyEventFactory;
 
   public SalesRepTerritoryAssignmentService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
     ILogger<SalesRepTerritoryAssignmentService> logger,
-    IRepTerritoryAssignmentCache assignmentCache)
+    IRepTerritoryAssignmentCache assignmentCache,
+    IOutboxWriter outboxWriter,
+    IHierarchyEventFactory hierarchyEventFactory)
   {
     _db = db;
     _currentUser = currentUser;
     _logger = logger;
     _assignmentCache = assignmentCache;
+    _outboxWriter = outboxWriter;
+    _hierarchyEventFactory = hierarchyEventFactory;
   }
 
   public async Task<AssignSalesRepToTerritoryResult> AssignAsync(
@@ -102,6 +109,13 @@ public sealed class SalesRepTerritoryAssignmentService
         .TerritoryNotAssignedToCallerAgency(request.TerritoryId);
     }
 
+    var agencyId = await _db.TerritoryAgencyAssignments
+      .Where(assignment =>
+        assignment.TerritoryId == territory.TerritoryId &&
+        assignment.EndsAt == null)
+      .Select(assignment => assignment.AgencyId)
+      .SingleAsync(cancellationToken);
+
     var salesRep = await _db.StaffProfiles.SingleOrDefaultAsync(
       profile =>
         profile.StaffProfileId == request.SalesRepId &&
@@ -166,6 +180,11 @@ public sealed class SalesRepTerritoryAssignmentService
       };
 
       _db.SalesRepTerritoryAssignments.Add(assignment);
+
+      _outboxWriter.Enqueue(
+        _hierarchyEventFactory.SalesRepAssigned(
+          assignment,
+          agencyId));
 
       await _db.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);

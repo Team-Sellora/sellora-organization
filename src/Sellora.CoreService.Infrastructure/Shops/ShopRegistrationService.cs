@@ -4,6 +4,7 @@ using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Outbox;
 
 namespace Sellora.CoreService.Infrastructure.Shops;
 
@@ -11,13 +12,18 @@ public sealed class ShopRegistrationService : IShopRegistrationService
 {
   private readonly CoreDbContext _db;
   private readonly ICurrentUserContext _currentUser;
-
+  private readonly IOutboxWriter _outboxWriter;
+  private readonly IHierarchyEventFactory _hierarchyEventFactory;
   public ShopRegistrationService(
     CoreDbContext db,
-    ICurrentUserContext currentUser)
+    ICurrentUserContext currentUser,
+    IOutboxWriter outboxWriter,
+    IHierarchyEventFactory hierarchyEventFactory)
   {
     _db = db;
     _currentUser = currentUser;
+    _outboxWriter = outboxWriter;
+    _hierarchyEventFactory = hierarchyEventFactory;
   }
 
   public async Task<RegisterShopResult> RegisterAsync(
@@ -90,6 +96,13 @@ public sealed class ShopRegistrationService : IShopRegistrationService
         territory.TerritoryId);
     }
 
+    var agencyId = await _db.TerritoryAgencyAssignments
+      .Where(assignment =>
+        assignment.TerritoryId == territory.TerritoryId &&
+        assignment.EndsAt == null)
+      .Select(assignment => assignment.AgencyId)
+      .SingleAsync(cancellationToken);
+
     if (string.IsNullOrWhiteSpace(request.OwnerIdentitySub))
     {
       return RegisterShopResult.OwnerIdentitySubRequired();
@@ -127,6 +140,10 @@ public sealed class ShopRegistrationService : IShopRegistrationService
     };
 
     _db.Shops.Add(shop);
+
+    _outboxWriter.Enqueue(
+      _hierarchyEventFactory.ShopRegistered(shop, agencyId));
+
     await _db.SaveChangesAsync(cancellationToken);
 
     return RegisterShopResult.Success(shop);

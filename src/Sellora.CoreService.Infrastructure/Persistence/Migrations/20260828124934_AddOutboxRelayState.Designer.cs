@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Sellora.CoreService.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Sellora.CoreService.Infrastructure.Persistence;
 namespace Sellora.CoreService.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CoreDbContext))]
-    partial class CoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260828124934_AddOutboxRelayState")]
+    partial class AddOutboxRelayState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -256,10 +259,8 @@ namespace Sellora.CoreService.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("company_id");
 
-                    b.Property<string>("CorrelationId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("text")
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid")
                         .HasColumnName("correlation_id");
 
                     b.Property<string>("EventType")

@@ -6,6 +6,8 @@ using Sellora.CoreService.Application.Identity;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Outbox;
+using Sellora.CoreService.Infrastructure.Outbox;
 
 namespace Sellora.CoreService.Infrastructure.Agencies;
 
@@ -16,15 +18,21 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
   private readonly CoreDbContext _db;
   private readonly ICurrentUserContext _currentUser;
   private readonly ILogger<AgencyRegistrationService> _logger;
+  private readonly IOutboxWriter _outboxWriter;
+  private readonly IHierarchyEventFactory _hierarchyEventFactory;
 
   public AgencyRegistrationService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
-    ILogger<AgencyRegistrationService> logger)
+    ILogger<AgencyRegistrationService> logger,
+    IOutboxWriter outboxWriter,
+    IHierarchyEventFactory hierarchyEventFactory)
   {
     _db = db;
     _currentUser = currentUser;
     _logger = logger;
+    _outboxWriter = outboxWriter;
+    _hierarchyEventFactory = hierarchyEventFactory;
   }
 
   public async Task<RegisterAgencyResult> RegisterAsync(
@@ -179,6 +187,11 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
 
     _db.Agencies.Add(agency);
     _db.AgencyOperatorAssignments.Add(operatorAssignment);
+
+    _outboxWriter.Enqueue(
+      _hierarchyEventFactory.AgencyRegistered(
+        agency,
+        operatorProfile.StaffProfileId));
 
     try
     {

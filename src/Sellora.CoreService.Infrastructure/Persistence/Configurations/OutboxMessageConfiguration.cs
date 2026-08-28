@@ -39,6 +39,11 @@ public class OutboxMessageConfiguration
       .HasMaxLength(120)
       .IsRequired();
 
+    builder.Property(message => message.SchemaVersion)
+      .HasColumnName("schema_version")
+      .HasMaxLength(16)
+      .IsRequired();
+
     builder.Property(message => message.Payload)
       .HasColumnName("payload")
       .HasColumnType("jsonb")
@@ -46,7 +51,8 @@ public class OutboxMessageConfiguration
 
     builder.Property(message => message.CorrelationId)
       .HasColumnName("correlation_id")
-      .HasColumnType("uuid")
+      .HasColumnType("text")
+      .HasMaxLength(128)
       .IsRequired();
 
     builder.Property(message => message.OccurredAt)
@@ -57,6 +63,35 @@ public class OutboxMessageConfiguration
     builder.Property(message => message.PublishedAt)
       .HasColumnName("published_at")
       .HasColumnType("timestamp with time zone");
+
+    builder.Property(message => message.AttemptCount)
+      .HasColumnName("attempt_count")
+      .IsRequired();
+
+    builder.Property(message => message.LastError)
+      .HasColumnName("last_error")
+      .HasMaxLength(2000);
+
+    builder.Property(message => message.NextAttemptAt)
+      .HasColumnName("next_attempt_at")
+      .HasColumnType("timestamp with time zone")
+      .IsRequired();
+
+    builder.Property(message => message.LeaseId)
+      .HasColumnName("lease_id")
+      .HasColumnType("uuid");
+
+    builder.Property(message => message.LeaseExpiresAt)
+      .HasColumnName("lease_expires_at")
+      .HasColumnType("timestamp with time zone");
+
+    builder.HasIndex(message => new
+    {
+      message.PublishedAt,
+      message.NextAttemptAt,
+      message.LeaseExpiresAt
+    })
+      .HasDatabaseName("ix_outbox_message_pending_relay");
 
     builder.HasOne<Company>()
       .WithMany()

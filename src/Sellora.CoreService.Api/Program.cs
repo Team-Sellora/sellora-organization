@@ -30,6 +30,10 @@ using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Microsoft.Extensions.Caching.Memory;
+using Sellora.CoreService.Application.Outbox;
+using Sellora.CoreService.Infrastructure.Outbox;
+using Sellora.CoreService.Api.Outbox;
+using Sellora.CoreService.Infrastructure.Persistence.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,6 +132,23 @@ if (builder.Environment.IsProduction() &&
 builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.Configure<KafkaOptions>(
+  builder.Configuration.GetSection(KafkaOptions.SectionName));
+
+builder.Services.Configure<OutboxRelayOptions>(
+  builder.Configuration.GetSection(OutboxRelayOptions.SectionName));
+
+builder.Services.AddScoped<IOutboxWriter, EntityFrameworkOutboxWriter>();
+
+builder.Services.AddScoped<IHierarchyEventFactory, HierarchyEventFactory>();
+
+builder.Services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<OutboxRelayService>();
+}
+
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
 builder.Services.AddScoped<IHierarchyReadService, HierarchyReadService>();
@@ -163,6 +184,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssignmentCache>();
 
 builder.Services.AddScoped<ISalesRepAssignmentReadService, SalesRepAssignmentReadService>();
+
+builder.Services.AddScoped<ICorrelationIdAccessor, HttpCorrelationIdAccessor>();
 
 builder.Host.UseSerilog((context, config) =>
     config
@@ -206,7 +229,16 @@ if (!app.Environment.IsEnvironment("Testing"))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
     await db.Database.MigrateAsync();
+
+    // Seed predictable demo data only in the Azure staging slot.
+    // The seeder checks for SELLORA-DEMO first, so repeated restarts
+    // do not duplicate rows.
+    if (app.Environment.IsStaging())
+    {
+        await DevelopmentOrganizationSeeder.SeedAsync(db);
+    }
 }
 
 if (app.Environment.IsDevelopment())
