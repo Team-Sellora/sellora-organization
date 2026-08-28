@@ -30,6 +30,8 @@ using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Infrastructure.SalesRepAssignments;
 using Microsoft.Extensions.Caching.Memory;
+using Sellora.CoreService.Application.Outbox;
+using Sellora.CoreService.Infrastructure.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,6 +129,20 @@ if (builder.Environment.IsProduction() &&
 
 builder.Services.AddDbContext<CoreDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+builder.Services.Configure<KafkaOptions>(
+  builder.Configuration.GetSection(KafkaOptions.SectionName));
+
+builder.Services.Configure<OutboxRelayOptions>(
+  builder.Configuration.GetSection(OutboxRelayOptions.SectionName));
+
+builder.Services.AddScoped<IOutboxWriter, EntityFrameworkOutboxWriter>();
+builder.Services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<OutboxRelayService>();
+}
 
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
