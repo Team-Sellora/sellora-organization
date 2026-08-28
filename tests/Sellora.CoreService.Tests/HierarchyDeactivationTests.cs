@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Sellora.CoreService.Application.Outbox;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Infrastructure.Hierarchy;
+using Sellora.CoreService.Infrastructure.Outbox;
 using Sellora.CoreService.Infrastructure.Persistence;
 
 namespace Sellora.CoreService.Tests;
@@ -28,7 +30,10 @@ public sealed class HierarchyDeactivationTests
       db,
       companyId);
 
-    var service = new HierarchyDeactivationService(db);
+    var correlationAccessor = new FakeCorrelationIdAccessor();
+    var outboxWriter = new EntityFrameworkOutboxWriter(db, correlationAccessor);
+    var eventFactory = new HierarchyEventFactory(correlationAccessor);
+    var service = new HierarchyDeactivationService(db, outboxWriter, eventFactory);
 
     var result = await service.DeactivateAgencyAsync(
       seed.AgencyId);
@@ -151,8 +156,11 @@ public sealed class HierarchyDeactivationTests
     await using var otherTenantDb =
       _fixture.CreateDbContext(otherCompanyId);
 
+    var correlationAccessor = new FakeCorrelationIdAccessor();
+    var outboxWriter = new EntityFrameworkOutboxWriter(otherTenantDb, correlationAccessor);
+    var eventFactory = new HierarchyEventFactory(correlationAccessor);
     var service =
-      new HierarchyDeactivationService(otherTenantDb);
+      new HierarchyDeactivationService(otherTenantDb, outboxWriter, eventFactory);
 
     var result = await service.DeactivateAgencyAsync(
       seed.AgencyId);
@@ -258,4 +266,9 @@ public sealed class HierarchyDeactivationTests
     Guid TerritoryId,
     Guid TerritoryAgencyAssignmentId,
     Guid ShopId);
+
+  private sealed class FakeCorrelationIdAccessor : ICorrelationIdAccessor
+  {
+    public string GetCorrelationId() => "test-correlation-id";
+  }
 }
