@@ -138,6 +138,9 @@ builder.Services.Configure<OutboxRelayOptions>(
   builder.Configuration.GetSection(OutboxRelayOptions.SectionName));
 
 builder.Services.AddScoped<IOutboxWriter, EntityFrameworkOutboxWriter>();
+
+builder.Services.AddScoped<IHierarchyEventFactory, HierarchyEventFactory>();
+
 builder.Services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
 
 if (!builder.Environment.IsEnvironment("Testing"))
