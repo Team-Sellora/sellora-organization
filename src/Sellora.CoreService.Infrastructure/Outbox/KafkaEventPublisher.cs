@@ -11,6 +11,8 @@ public sealed class KafkaOptions
   public string BootstrapServers { get; init; } = "localhost:9092";
 
   public string HierarchyTopic { get; init; } = "sellora.hierarchy.v1";
+
+  public int MessageTimeoutMs { get; init; } = 10_000;
 }
 
 public sealed class KafkaEventPublisher : IEventPublisher, IDisposable
@@ -26,7 +28,8 @@ public sealed class KafkaEventPublisher : IEventPublisher, IDisposable
     {
       BootstrapServers = _options.BootstrapServers,
       EnableIdempotence = true,
-      Acks = Acks.All
+      Acks = Acks.All,
+      MessageTimeoutMs = _options.MessageTimeoutMs
     }).Build();
   }
 
