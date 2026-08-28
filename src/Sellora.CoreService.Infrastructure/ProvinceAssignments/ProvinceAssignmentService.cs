@@ -97,6 +97,35 @@ public sealed class ProvinceAssignmentService : IProvinceAssignmentService
         elsewhereForSameUser.ProvinceId);
     }
 
+    // StaffProfile has no IsPrimaryAdmin setting. Use the earliest-created
+    // active CompanyAdmin as a deterministic default; StaffProfileId breaks
+    // an otherwise equal timestamp tie.
+    var activeAdmins = await _db.StaffProfiles
+      .Where(profile =>
+        profile.Role == Roles.CompanyAdmin &&
+        profile.Status == HierarchyStatus.Active)
+      .Select(profile => new
+      {
+        profile.StaffProfileId,
+        profile.CreatedAt
+      })
+      .ToListAsync(cancellationToken);
+
+    // DateTimeOffset ORDER BY is not supported by SQLite, which backs the
+    // API test host. The company-admin list is intentionally small, so order
+    // after the scoped query has completed while preserving the same rule in
+    // PostgreSQL and SQLite.
+    var primaryAdminId = activeAdmins
+      .OrderBy(profile => profile.CreatedAt)
+      .ThenBy(profile => profile.StaffProfileId)
+      .Select(profile => (Guid?)profile.StaffProfileId)
+      .FirstOrDefault();
+
+    if (primaryAdminId is null)
+    {
+      return AssignAreaManagerResult.NoActiveCompanyAdmin();
+    }
+
     var actingSub = _currentUser.Subject
       ?? throw new InvalidOperationException(
         "The current request has no subject claim.");
@@ -125,7 +154,7 @@ public sealed class ProvinceAssignmentService : IProvinceAssignmentService
       CompanyId = province.CompanyId,
       ProvinceId = province.ProvinceId,
       AreaManagerId = target.StaffProfileId,
-      ReportsToAdminId = null,
+      ReportsToAdminId = primaryAdminId.Value,
       StartsAt = now,
       EndsAt = null,
       CreatedBy = actingSub
@@ -136,5 +165,61 @@ public sealed class ProvinceAssignmentService : IProvinceAssignmentService
     await tx.CommitAsync(cancellationToken);
 
     return AssignAreaManagerResult.Success(assignment);
+  }
+
+  public async Task<UpdateAreaManagerReportsToResult>
+    UpdateAreaManagerReportsToAsync(
+      UpdateAreaManagerReportsToRequest request,
+      CancellationToken cancellationToken = default)
+  {
+    var assignment = await _db.ProvinceManagerAssignments
+      .SingleOrDefaultAsync(
+        item =>
+          item.ProvinceId == request.ProvinceId &&
+          item.EndsAt == null,
+        cancellationToken);
+
+    if (assignment is null)
+    {
+      return UpdateAreaManagerReportsToResult.ActiveAssignmentNotFound(
+        request.ProvinceId);
+    }
+
+    // The tenant query filter prevents a caller from selecting an admin from
+    // another company. Such an ID deliberately appears not to exist.
+    var target = await _db.StaffProfiles
+      .SingleOrDefaultAsync(
+        profile => profile.StaffProfileId == request.ReportsToAdminId,
+        cancellationToken);
+
+    if (target is null)
+    {
+      return UpdateAreaManagerReportsToResult.ReportsToAdminNotFound(
+        request.ReportsToAdminId);
+    }
+
+    if (!string.Equals(
+      target.Role,
+      Roles.CompanyAdmin,
+      StringComparison.Ordinal))
+    {
+      return UpdateAreaManagerReportsToResult
+        .ReportsToUserNotCompanyAdmin(target);
+    }
+
+    if (!string.Equals(
+      target.Status,
+      HierarchyStatus.Active,
+      StringComparison.Ordinal))
+    {
+      return UpdateAreaManagerReportsToResult
+        .ReportsToUserInactive(target);
+    }
+
+    // Reporting metadata is intentionally independent of access scope.
+    assignment.ReportsToAdminId = target.StaffProfileId;
+    await _db.SaveChangesAsync(cancellationToken);
+
+    return UpdateAreaManagerReportsToResult.Success(assignment);
   }
 }

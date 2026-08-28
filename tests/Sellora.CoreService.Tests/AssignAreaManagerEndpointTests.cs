@@ -48,6 +48,9 @@ public sealed class AssignAreaManagerEndpointTests
 
     Assert.Equal(managerId, assignment.AreaManagerId);
     Assert.Equal(HierarchyEndpointTestData.CompanyId, assignment.CompanyId);
+    Assert.Equal(
+      HierarchyEndpointTestData.CompanyAdminId,
+      assignment.ReportsToAdminId);
     Assert.Equal("test-admin", assignment.CreatedBy);
   }
 

@@ -12,6 +12,9 @@ public static class HierarchyEndpointTestData
   public static readonly Guid OtherCompanyId =
     Guid.Parse("20000000-0000-0000-0000-000000000001");
 
+  public static readonly Guid CompanyAdminId =
+    Guid.Parse("10000000-0000-0000-0000-000000000002");
+
   public static readonly Guid NorthProvinceId =
     Guid.Parse("10000000-0000-0000-0000-000000000010");
 
@@ -43,6 +46,7 @@ public static class HierarchyEndpointTestData
     Guid.Parse("10000000-0000-0000-0000-000000030000");
 
   public const string AreaManagerSubject = "area-manager-north";
+  public const string CompanyAdminSubject = "test-admin";
   public const string AgencyOperatorSubject = "operator-north";
   public const string SalesRepSubject = "sales-rep-north";
   public const string ShopOwnerSubject = "shop-owner-north";
@@ -109,6 +113,11 @@ public static class HierarchyEndpointTestData
         Status = HierarchyStatus.Active,
         CreatedAt = now
       },
+      CreateStaff(
+        CompanyAdminId,
+        CompanyId,
+        CompanyAdminSubject,
+        "CompanyAdmin"),
       CreateStaff(
         northManagerId,
         CompanyId,
@@ -183,6 +192,7 @@ public static class HierarchyEndpointTestData
         CompanyId = CompanyId,
         ProvinceId = NorthProvinceId,
         AreaManagerId = northManagerId,
+        ReportsToAdminId = CompanyAdminId,
         StartsAt = now,
         CreatedBy = "test-seed"
       },
@@ -192,6 +202,7 @@ public static class HierarchyEndpointTestData
         CompanyId = CompanyId,
         ProvinceId = SouthProvinceId,
         AreaManagerId = southManagerId,
+        ReportsToAdminId = CompanyAdminId,
         StartsAt = now,
         CreatedBy = "test-seed"
       },

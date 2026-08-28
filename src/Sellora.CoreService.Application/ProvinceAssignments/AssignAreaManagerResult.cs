@@ -22,6 +22,12 @@ public enum AssignAreaManagerOutcome
   TargetInactive,
 
   /// <summary>
+  /// The company has no active CompanyAdmin profile to use as the default
+  /// reporting contact. Maps to 400.
+  /// </summary>
+  NoActiveCompanyAdmin,
+
+  /// <summary>
   /// Target user is already the active Area Manager of a different province.
   /// Maps to 409. An Area Manager may cover multiple provinces, but that must
   /// be an intentional decision — this endpoint flags it rather than silently
@@ -76,6 +82,12 @@ public sealed class AssignAreaManagerResult
     new(AssignAreaManagerOutcome.TargetInactive,
       $"User '{target.StaffProfileId}' is inactive and cannot be " +
       "assigned to a province.");
+
+  public static AssignAreaManagerResult NoActiveCompanyAdmin() =>
+    new(
+      AssignAreaManagerOutcome.NoActiveCompanyAdmin,
+      "No active CompanyAdmin is available as the default reporting " +
+      "contact.");
 
   public static AssignAreaManagerResult TargetAlreadyManagesAnotherProvince(
     StaffProfile target,

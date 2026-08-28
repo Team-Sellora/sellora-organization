@@ -10,11 +10,14 @@ namespace Sellora.CoreService.Api.Controllers;
 public sealed class HierarchyController : ControllerBase
 {
   private readonly IHierarchyReadService _hierarchy;
+  private readonly IHierarchyRollUpService _rollUp;
 
   public HierarchyController(
-    IHierarchyReadService hierarchy)
+    IHierarchyReadService hierarchy,
+    IHierarchyRollUpService rollUp)
   {
     _hierarchy = hierarchy;
+    _rollUp = rollUp;
   }
 
   [HttpGet]
@@ -41,5 +44,20 @@ public sealed class HierarchyController : ControllerBase
     }
 
     return Ok(hierarchy);
+  }
+
+  /// <summary>
+  /// Returns one Company Admin summary row per province, including active
+  /// hierarchy counts and coverage gaps. This endpoint is read-only.
+  /// </summary>
+  [HttpGet("roll-up")]
+  [Authorize(Policy = RolePolicies.RequireCompanyAdmin)]
+  [ProducesResponseType(
+    typeof(IReadOnlyList<ProvinceRollUpResponse>),
+    StatusCodes.Status200OK)]
+  public async Task<ActionResult<IReadOnlyList<ProvinceRollUpResponse>>> RollUp(
+    CancellationToken cancellationToken)
+  {
+    return Ok(await _rollUp.ListAsync(cancellationToken));
   }
 }

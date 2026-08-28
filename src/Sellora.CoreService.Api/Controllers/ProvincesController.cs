@@ -78,6 +78,7 @@ public sealed class ProvincesController : ControllerBase
         assignmentId = result.Assignment!.AssignmentId,
         provinceId = result.Assignment.ProvinceId,
         areaManagerId = result.Assignment.AreaManagerId,
+        reportsToAdminId = result.Assignment.ReportsToAdminId,
         startsAt = result.Assignment.StartsAt
       }),
 
@@ -96,10 +97,75 @@ public sealed class ProvincesController : ControllerBase
           Detail = result.Message
         }),
 
+      AssignAreaManagerOutcome.NoActiveCompanyAdmin =>
+        BadRequest(new ProblemDetails
+        {
+          Status = StatusCodes.Status400BadRequest,
+          Title = "No reporting admin available",
+          Detail = result.Message
+        }),
+
       _ => BadRequest(new ProblemDetails
       {
         Status = StatusCodes.Status400BadRequest,
         Title = "Assignment rejected",
+        Detail = result.Message
+      })
+    };
+  }
+
+  /// <summary>
+  /// Changes the reporting contact for the province's active Area Manager.
+  /// It updates organisational metadata only and does not alter access scope.
+  /// </summary>
+  [HttpPut("{provinceId:guid}/area-manager/reports-to")]
+  [Authorize(Policy = RolePolicies.RequireCompanyAdmin)]
+  [ProducesResponseType(StatusCodes.Status200OK)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+  [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+  public async Task<IActionResult> UpdateAreaManagerReportsTo(
+    Guid provinceId,
+    [FromBody] UpdateAreaManagerReportsToRequestBody body,
+    CancellationToken cancellationToken)
+  {
+    if (body is null || body.ReportsToAdminId == Guid.Empty)
+    {
+      return BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Invalid request body",
+        Detail = "reportsToAdminId is required."
+      });
+    }
+
+    var result = await _assignments.UpdateAreaManagerReportsToAsync(
+      new UpdateAreaManagerReportsToRequest(
+        provinceId,
+        body.ReportsToAdminId),
+      cancellationToken);
+
+    return result.Outcome switch
+    {
+      UpdateAreaManagerReportsToOutcome.Success => Ok(new
+      {
+        assignmentId = result.Assignment!.AssignmentId,
+        provinceId = result.Assignment.ProvinceId,
+        areaManagerId = result.Assignment.AreaManagerId,
+        reportsToAdminId = result.Assignment.ReportsToAdminId
+      }),
+
+      UpdateAreaManagerReportsToOutcome.ActiveAssignmentNotFound =>
+        NotFound(new ProblemDetails
+        {
+          Status = StatusCodes.Status404NotFound,
+          Title = "Active Area Manager assignment not found",
+          Detail = result.Message
+        }),
+
+      _ => BadRequest(new ProblemDetails
+      {
+        Status = StatusCodes.Status400BadRequest,
+        Title = "Reporting line update rejected",
         Detail = result.Message
       })
     };
