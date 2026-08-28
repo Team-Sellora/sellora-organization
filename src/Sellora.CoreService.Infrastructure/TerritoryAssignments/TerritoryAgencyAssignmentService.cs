@@ -5,6 +5,7 @@ using Sellora.CoreService.Application.TerritoryAssignments;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Outbox;
 
 namespace Sellora.CoreService.Infrastructure.TerritoryAssignments;
 
@@ -15,17 +16,23 @@ public sealed class TerritoryAgencyAssignmentService
   private readonly ICurrentUserContext _currentUser;
   private readonly ILogger<TerritoryAgencyAssignmentService> _logger;
   private readonly IOpenWorkChecker _openWorkChecker;
+  private readonly IOutboxWriter _outboxWriter;
+  private readonly IHierarchyEventFactory _hierarchyEventFactory;
 
   public TerritoryAgencyAssignmentService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
     ILogger<TerritoryAgencyAssignmentService> logger,
-    IOpenWorkChecker openWorkChecker)
+    IOpenWorkChecker openWorkChecker,
+    IOutboxWriter outboxWriter,
+    IHierarchyEventFactory hierarchyEventFactory)
   {
     _db = db;
     _currentUser = currentUser;
     _logger = logger;
     _openWorkChecker = openWorkChecker;
+    _outboxWriter = outboxWriter;
+    _hierarchyEventFactory = hierarchyEventFactory;
   }
 
   public async Task<AssignTerritoryAgencyResult> AssignAsync(
@@ -178,6 +185,11 @@ public sealed class TerritoryAgencyAssignmentService
     };
 
     _db.TerritoryAgencyAssignments.Add(assignment);
+
+    _outboxWriter.Enqueue(
+      _hierarchyEventFactory.TerritoryAssignedToAgency(
+        territory,
+        assignment));
 
     await _db.SaveChangesAsync(cancellationToken);
     await transaction.CommitAsync(cancellationToken);
