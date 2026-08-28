@@ -5,6 +5,7 @@ using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
 using Sellora.CoreService.Infrastructure.Persistence;
+using Sellora.CoreService.Application.Outbox;
 
 namespace Sellora.CoreService.Infrastructure.Shops;
 
@@ -12,13 +13,18 @@ public sealed class ShopUpdateService : IShopUpdateService
 {
   private readonly CoreDbContext _db;
   private readonly ICurrentUserContext _currentUser;
-
+  private readonly IOutboxWriter _outboxWriter;
+  private readonly IHierarchyEventFactory _hierarchyEventFactory;
   public ShopUpdateService(
     CoreDbContext db,
-    ICurrentUserContext currentUser)
+    ICurrentUserContext currentUser,
+    IOutboxWriter outboxWriter,
+    IHierarchyEventFactory hierarchyEventFactory)
   {
     _db = db;
     _currentUser = currentUser;
+    _outboxWriter = outboxWriter;
+    _hierarchyEventFactory = hierarchyEventFactory;
   }
 
   public async Task<UpdateShopResult> UpdateAsync(
@@ -75,6 +81,13 @@ public sealed class ShopUpdateService : IShopUpdateService
     {
       return UpdateShopResult.ShopOutsideCallerAgency(shop.ShopId);
     }
+
+    var agencyId = await _db.TerritoryAgencyAssignments
+      .Where(assignment =>
+        assignment.TerritoryId == shop.TerritoryId &&
+        assignment.EndsAt == null)
+      .Select(assignment => assignment.AgencyId)
+      .SingleAsync(cancellationToken);
 
     var coordinatesChanged =
       shop.Latitude != request.Latitude ||
@@ -138,6 +151,25 @@ public sealed class ShopUpdateService : IShopUpdateService
     shop.Longitude = request.Longitude;
     shop.CreditLimit = request.CreditLimit;
     shop.UpdatedAt = now;
+
+    var changedFields = new List<string>();
+
+    if (coordinatesChanged)
+    {
+      changedFields.Add("latitude");
+      changedFields.Add("longitude");
+    }
+
+    if (creditLimitChanged)
+    {
+      changedFields.Add("creditLimit");
+    }
+
+    _outboxWriter.Enqueue(
+      _hierarchyEventFactory.ShopUpdated(
+        shop,
+        agencyId,
+        changedFields));
 
     await _db.SaveChangesAsync(cancellationToken);
     await transaction.CommitAsync(cancellationToken);
