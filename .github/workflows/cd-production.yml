@@ -44,7 +44,7 @@ jobs:
       - name: Verify production health endpoint
         shell: bash
         run: |
-          URL="https://sellora-organization-erbxh6bvbpggc7df.eastasia-01.azurewebsites.net/health"
+          URL="https://sellora-organization-erbxh6bvbpggc7df.southeastasia-01.azurewebsites.net/health"
 
           for attempt in {1..12}; do
             STATUS=$(curl \
