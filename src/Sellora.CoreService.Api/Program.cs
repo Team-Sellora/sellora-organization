@@ -62,6 +62,10 @@ builder.Services
     {
         options.Authority = authority;
         options.MetadataAddress = metadataAddress;
+        // WSO2 IS emits claims under their raw names ("roles", "companyId",
+        // "sub"). Keep them unmapped so RolePolicies and the tenant/current-
+        // user contexts can read "roles" directly instead of ClaimTypes.Role.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Sellora.CoreService.Api.Authorization;
 
@@ -23,12 +22,12 @@ public static class RolePolicies
             "CompanyAdmin", "AreaManager", "AgencyOperator", "SalesRep", "ShopOwner")));
     }
 
-    // WSO2 IS emits the "roles" claim, but .NET's default JWT handler renames it
-    // to ClaimTypes.Role (http://schemas.microsoft.com/ws/2008/06/identity/claims/role)
-    // before we see it. Match on the actually-received claim type, not "roles".
+    // WSO2 IS emits the "roles" claim (plural, an array). Program.cs sets
+    // RoleClaimType = "roles" and MapInboundClaims = false, so "roles" arrives
+    // unmapped — match on "roles" directly, not ClaimTypes.Role.
     private static Func<AuthorizationHandlerContext, bool> HasRole(string role) =>
-        ctx => ctx.User.HasClaim(ClaimTypes.Role, role);
+        ctx => ctx.User.HasClaim("roles", role);
 
     private static Func<AuthorizationHandlerContext, bool> HasAnyRole(params string[] roles) =>
-        ctx => roles.Any(r => ctx.User.HasClaim(ClaimTypes.Role, r));
+        ctx => roles.Any(r => ctx.User.HasClaim("roles", r));
 }
