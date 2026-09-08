@@ -72,6 +72,10 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.FromSeconds(30),
             RoleClaimType = "roles",
+            // WSO2 IS emits claims under their raw names ("roles", "companyId",
+            // "sub"). Keep them unmapped so RolePolicies and the tenant/current-
+            // user contexts can read "roles" directly instead of ClaimTypes.Role.
+            MapInboundClaims = false,
         };
 
         if (builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
