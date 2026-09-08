@@ -71,6 +71,7 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.FromSeconds(30),
+            RoleClaimType = "roles",
         };
 
         if (builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
