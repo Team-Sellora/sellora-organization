@@ -49,8 +49,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          HEALTH_URL="https://sellora-organization-staging-geg9hja5hdgycybv.eastasia-01.azurewebsites.net/health"
-          WHOAMI_URL="https://sellora-organization-staging-geg9hja5hdgycybv.eastasia-01.azurewebsites.net/whoami"
+          HEALTH_URL="https://sellora-organization-staging-geg9hja5hdgycybv.southeastasia-01.azurewebsites.net/health"
+          WHOAMI_URL="https://sellora-organization-staging-geg9hja5hdgycybv.southeastasia-01.azurewebsites.net/whoami"
 
           for attempt in {1..12}; do
             HEALTH_STATUS=$(curl \
