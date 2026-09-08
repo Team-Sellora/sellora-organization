@@ -51,7 +51,8 @@ var jwt = builder.Configuration.GetSection("Jwt");
 var authority = jwt["Authority"]!;
 var metadataAddress = jwt["MetadataAddress"]!;
 var issuer = jwt["Issuer"]!;
-var audience = jwt["Audience"]!;
+var audiences = jwt.GetSection("Audience").Get<string[]>()
+    ?? new[] { jwt["Audience"]! };
 // JWT bearer authentication
 // Validates every incoming token against Identity Server's JWKS:
 // signature (via keys fetched from JWKS), issuer, audience, and lifetime.
@@ -61,14 +62,12 @@ builder.Services
     {
         options.Authority = authority;
         options.MetadataAddress = metadataAddress;
-        options.Audience = audience;
-
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = issuer,
             ValidateAudience = true,
-            ValidAudience = audience,
+            ValidAudiences = audiences,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.FromSeconds(30),
