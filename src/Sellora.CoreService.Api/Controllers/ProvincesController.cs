@@ -28,7 +28,7 @@ public sealed class ProvincesController : ControllerBase
   /// single aggregate query so it stays cheap under dashboard polling.
   /// </summary>
   [HttpGet]
-  [Authorize(Policy = RolePolicies.RequireCompanyAdmin)]
+  [Authorize(Policy = RolePolicies.RequireHierarchyReader)]
   [ProducesResponseType(
     typeof(IReadOnlyList<ProvinceSummaryResponse>),
     StatusCodes.Status200OK)]
