@@ -88,15 +88,15 @@ public sealed class ProvinceListEndpointTests
     Assert.Equal(0, only.ShopCount);
   }
 
-  // Endpoint policy — non-admin caller refused
+  // Endpoint policy — hierarchy readers (including Area Manager) are admitted
   [Fact]
-  public async Task Get_NonAdminCaller_ReturnsForbidden()
+  public async Task Get_AreaManager_ReturnsOk()
   {
     var response = await GetAsync(
       callerRole: Roles.AreaManager,
       companyId: HierarchyEndpointTestData.CompanyId.ToString());
 
-    Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
   }
 
   // Endpoint policy — no token refused
