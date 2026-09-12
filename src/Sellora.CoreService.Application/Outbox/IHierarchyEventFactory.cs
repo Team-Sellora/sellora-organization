@@ -23,7 +23,8 @@ public interface IHierarchyEventFactory
 
   NewOutboxMessage SalesRepAssigned(
     SalesRepTerritoryAssignment assignment,
-    Guid agencyId);
+    Guid agencyId,
+    string salesRepName);
 
   NewOutboxMessage HierarchyEntityDeactivated(
     Agency agency,
