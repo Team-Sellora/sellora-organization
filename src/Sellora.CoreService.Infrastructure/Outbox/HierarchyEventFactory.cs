@@ -34,6 +34,7 @@ public sealed class HierarchyEventFactory : IHierarchyEventFactory
         companyId = agency.CompanyId,
         entityId = agency.AgencyId,
         agencyId = agency.AgencyId,
+        agencyName = agency.Name,
         provinceId = agency.ProvinceId,
         operatorId,
         effectiveAt = agency.CreatedAt,
@@ -122,7 +123,8 @@ public sealed class HierarchyEventFactory : IHierarchyEventFactory
 
   public NewOutboxMessage SalesRepAssigned(
     SalesRepTerritoryAssignment assignment,
-    Guid agencyId)
+    Guid agencyId,
+    string salesRepName)
   {
     return Create(
       assignment.CompanyId,
@@ -138,6 +140,7 @@ public sealed class HierarchyEventFactory : IHierarchyEventFactory
         companyId = assignment.CompanyId,
         entityId = assignment.SalesRepId,
         salesRepId = assignment.SalesRepId,
+        salesRepName,
         territoryId = assignment.TerritoryId,
         agencyId,
         effectiveAt = assignment.StartsAt,

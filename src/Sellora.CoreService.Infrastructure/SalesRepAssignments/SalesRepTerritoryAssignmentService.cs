@@ -184,7 +184,8 @@ public sealed class SalesRepTerritoryAssignmentService
       _outboxWriter.Enqueue(
         _hierarchyEventFactory.SalesRepAssigned(
           assignment,
-          agencyId));
+          agencyId,
+          salesRep.DisplayName));
 
       await _db.SaveChangesAsync(cancellationToken);
       await transaction.CommitAsync(cancellationToken);
