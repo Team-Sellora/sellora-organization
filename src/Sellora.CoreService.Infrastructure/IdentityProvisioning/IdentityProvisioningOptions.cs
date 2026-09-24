@@ -23,8 +23,8 @@ public sealed class IdentityProvisioningOptions
 
   /// <summary>IS 7 scopes for the SCIM2 Users and Roles APIs.</summary>
   public string Scopes { get; set; } =
-    "internal_user_mgt_create internal_user_mgt_delete" +
-    "internal_role_mgt_view internal_role_mgt_update";
+    "internal_user_mgt_create internal_user_mgt_delete internal_user_mgt_list " +
+    "internal_role_mgt_view internal_role_mgt_update internal_role_mgt_users_update";
 
   /// <summary>Basic mode only.</summary>
   public string AdminUserName { get; set; } = string.Empty;
