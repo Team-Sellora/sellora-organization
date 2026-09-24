@@ -9,7 +9,9 @@ public enum RegisterShopOutcome
   TerritoryNotFound,
   TerritoryNotAssignedToCallerAgency,
   OwnerIdentitySubRequired,
-  OwnerIdentityAlreadyLinked
+  OwnerIdentityAlreadyLinked,
+  OwnerEmailAlreadyUsed,
+  IdentityProviderUnavailable
 }
 
 public sealed class RegisterShopResult
@@ -18,18 +20,34 @@ public sealed class RegisterShopResult
   public string Message { get; }
   public Shop? Shop { get; }
 
+  /// <summary>
+  /// The Shop Owner login created with the shop, when one was provisioned.
+  /// Carries a temporary password once; never stored.
+  /// </summary>
+  public ProvisionedShopOwner? OwnerLogin { get; }
+
   private RegisterShopResult(
     RegisterShopOutcome outcome,
     string message,
-    Shop? shop = null)
+    Shop? shop = null,
+    ProvisionedShopOwner? ownerLogin = null)
   {
     Outcome = outcome;
     Message = message;
     Shop = shop;
+    OwnerLogin = ownerLogin;
   }
 
-  public static RegisterShopResult Success(Shop shop) =>
-    new(RegisterShopOutcome.Success, "Shop registered.", shop);
+  public static RegisterShopResult Success(Shop shop, ProvisionedShopOwner? ownerLogin = null) =>
+    new(RegisterShopOutcome.Success, "Shop registered.", shop, ownerLogin);
+
+  public static RegisterShopResult OwnerEmailAlreadyUsed(string email) =>
+    new(
+      RegisterShopOutcome.OwnerEmailAlreadyUsed,
+      $"A login for {email} already exists. Use a different email for this shop owner.");
+
+  public static RegisterShopResult IdentityProviderUnavailable(string message) =>
+    new(RegisterShopOutcome.IdentityProviderUnavailable, message);
 
   public static RegisterShopResult CallerNotAnActiveAgencyOperator() =>
     new(
@@ -50,7 +68,7 @@ public sealed class RegisterShopResult
   public static RegisterShopResult OwnerIdentitySubRequired() =>
     new(
       RegisterShopOutcome.OwnerIdentitySubRequired,
-      "ownerIdentitySub is required so the Shop Owner can access this shop.");
+      "ownerEmail is required so a login can be created for the Shop Owner.");
 
   public static RegisterShopResult OwnerIdentityAlreadyLinked(
     string ownerIdentitySub) =>
@@ -58,3 +76,8 @@ public sealed class RegisterShopResult
       RegisterShopOutcome.OwnerIdentityAlreadyLinked,
       $"Shop Owner identity '{ownerIdentitySub}' is already linked to another shop.");
 }
+
+public sealed record ProvisionedShopOwner(
+  string IdentitySub,
+  string UserName,
+  string? TemporaryPassword);
