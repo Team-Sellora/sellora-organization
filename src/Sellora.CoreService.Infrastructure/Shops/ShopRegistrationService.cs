@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Sellora.CoreService.Application.Identity;
+using Sellora.CoreService.Application.IdentityProvisioning;
 using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
@@ -14,16 +15,19 @@ public sealed class ShopRegistrationService : IShopRegistrationService
   private readonly ICurrentUserContext _currentUser;
   private readonly IOutboxWriter _outboxWriter;
   private readonly IHierarchyEventFactory _hierarchyEventFactory;
+  private readonly IIdentityProvisioner _provisioner;
   public ShopRegistrationService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
     IOutboxWriter outboxWriter,
-    IHierarchyEventFactory hierarchyEventFactory)
+    IHierarchyEventFactory hierarchyEventFactory,
+    IIdentityProvisioner provisioner)
   {
     _db = db;
     _currentUser = currentUser;
     _outboxWriter = outboxWriter;
     _hierarchyEventFactory = hierarchyEventFactory;
+    _provisioner = provisioner;
   }
 
   public async Task<RegisterShopResult> RegisterAsync(
@@ -103,23 +107,53 @@ public sealed class ShopRegistrationService : IShopRegistrationService
       .Select(assignment => assignment.AgencyId)
       .SingleAsync(cancellationToken);
 
-    if (string.IsNullOrWhiteSpace(request.OwnerIdentitySub))
+    // Normally the Shop Owner's login is created here from their email, so
+    // nobody copies an identity ID by hand. An existing login can still be
+    // linked by passing ownerIdentitySub explicitly.
+    var ownerEmail = string.IsNullOrWhiteSpace(request.OwnerEmail)
+      ? null
+      : request.OwnerEmail.Trim().ToLowerInvariant();
+    var explicitSub = string.IsNullOrWhiteSpace(request.OwnerIdentitySub)
+      ? null
+      : request.OwnerIdentitySub.Trim();
+
+    if (explicitSub is null && ownerEmail is null)
     {
       return RegisterShopResult.OwnerIdentitySubRequired();
     }
 
-    var ownerIdentitySub = request.OwnerIdentitySub.Trim();
-
-    var ownerIdentityAlreadyLinked = await _db.Shops
-      .AnyAsync(
-        shop => shop.OwnerIdentitySub == ownerIdentitySub,
-        cancellationToken);
-
-    if (ownerIdentityAlreadyLinked)
+    if (explicitSub is not null &&
+        await _db.Shops.AnyAsync(shop => shop.OwnerIdentitySub == explicitSub, cancellationToken))
     {
-      return RegisterShopResult.OwnerIdentityAlreadyLinked(
-        ownerIdentitySub);
+      return RegisterShopResult.OwnerIdentityAlreadyLinked(explicitSub);
     }
+
+    ProvisionedIdentity? provisioned = null;
+
+    if (explicitSub is null)
+    {
+      try
+      {
+        provisioned = await _provisioner.CreateUserAsync(
+          new NewIdentityUser(
+            ownerEmail!,
+            string.IsNullOrWhiteSpace(request.OwnerName) ? request.Name.Trim() : request.OwnerName.Trim(),
+            request.OwnerPhone,
+            Roles.ShopOwner,
+            territory.CompanyId),
+          cancellationToken);
+      }
+      catch (IdentityUserAlreadyExistsException)
+      {
+        return RegisterShopResult.OwnerEmailAlreadyUsed(ownerEmail!);
+      }
+      catch (IdentityProvisioningUnavailableException exception)
+      {
+        return RegisterShopResult.IdentityProviderUnavailable(exception.Message);
+      }
+    }
+
+    var ownerIdentitySub = explicitSub ?? provisioned!.IdentityId;
 
     var shop = new Shop
     {
@@ -129,7 +163,7 @@ public sealed class ShopRegistrationService : IShopRegistrationService
       Name = request.Name.Trim(),
       OwnerName = request.OwnerName?.Trim(),
       OwnerIdentitySub = ownerIdentitySub,
-      OwnerEmail = request.OwnerEmail?.Trim(),
+      OwnerEmail = ownerEmail,
       OwnerPhone = request.OwnerPhone?.Trim(),
       Address = request.Address.Trim(),
       Latitude = request.Latitude,
@@ -144,8 +178,24 @@ public sealed class ShopRegistrationService : IShopRegistrationService
     _outboxWriter.Enqueue(
       _hierarchyEventFactory.ShopRegistered(shop, agencyId));
 
-    await _db.SaveChangesAsync(cancellationToken);
+    try
+    {
+      await _db.SaveChangesAsync(CancellationToken.None);
+    }
+    catch
+    {
+      if (provisioned is not null)
+      {
+        await _provisioner.DeleteUserAsync(provisioned.IdentityId, CancellationToken.None);
+      }
 
-    return RegisterShopResult.Success(shop);
+      throw;
+    }
+
+    return RegisterShopResult.Success(
+      shop,
+      provisioned is null
+        ? null
+        : new ProvisionedShopOwner(provisioned.IdentityId, provisioned.UserName, provisioned.TemporaryPassword));
   }
 }

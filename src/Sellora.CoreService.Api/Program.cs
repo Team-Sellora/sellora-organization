@@ -36,6 +36,12 @@ using Sellora.CoreService.Application.Outbox;
 using Sellora.CoreService.Infrastructure.Outbox;
 using Sellora.CoreService.Api.Outbox;
 using Sellora.CoreService.Infrastructure.Persistence.Seeding;
+using Sellora.CoreService.Application.Me;
+using Sellora.CoreService.Infrastructure.Me;
+using Sellora.CoreService.Application.Staff;
+using Sellora.CoreService.Infrastructure.Staff;
+using Sellora.CoreService.Application.IdentityProvisioning;
+using Sellora.CoreService.Infrastructure.IdentityProvisioning;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -195,6 +201,52 @@ builder.Services.AddScoped<IRepTerritoryAssignmentCache, MemoryRepTerritoryAssig
 builder.Services.AddScoped<ISalesRepAssignmentReadService, SalesRepAssignmentReadService>();
 
 builder.Services.AddScoped<ICorrelationIdAccessor, HttpCorrelationIdAccessor>();
+
+// Identity & scope: GET /api/me/scope lets Order and Inventory resolve a
+// caller's hierarchy position from their sub, instead of token claims.
+builder.Services.AddScoped<ICallerScopeService, CallerScopeService>();
+
+// Users are created from Sellora (POST /api/staff, shop registration) and
+// provisioned into WSO2 IS over SCIM2. Without settings, provisioning fails
+// clearly with 503 instead of half-working.
+builder.Services.Configure<IdentityProvisioningOptions>(
+  builder.Configuration.GetSection(IdentityProvisioningOptions.SectionName));
+builder.Services.AddScoped<IStaffProvisioningService, StaffProvisioningService>();
+
+var identityProvisioning = builder.Configuration
+  .GetSection(IdentityProvisioningOptions.SectionName)
+  .Get<IdentityProvisioningOptions>() ?? new IdentityProvisioningOptions();
+
+if (identityProvisioning.IsConfigured)
+{
+  HttpMessageHandler ProvisioningHandler() => new HttpClientHandler
+  {
+    // Only for a self-signed IS on staging; off unless explicitly set.
+    ServerCertificateCustomValidationCallback = identityProvisioning.AllowUntrustedCertificate
+      ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+      : null
+  };
+
+  builder.Services.AddHttpClient(ScimAuthenticationHandler.TokenClientName, client =>
+      client.Timeout = TimeSpan.FromSeconds(identityProvisioning.TimeoutSeconds))
+    .ConfigurePrimaryHttpMessageHandler(ProvisioningHandler);
+
+  builder.Services.AddSingleton<ScimTokenCache>();
+  builder.Services.AddTransient<ScimAuthenticationHandler>();
+  builder.Services.AddHttpClient(Wso2ScimIdentityProvisioner.HttpClientName, client =>
+    {
+      client.BaseAddress = new Uri(identityProvisioning.BaseUrl.TrimEnd('/') + "/");
+      client.Timeout = TimeSpan.FromSeconds(identityProvisioning.TimeoutSeconds);
+    })
+    .ConfigurePrimaryHttpMessageHandler(ProvisioningHandler)
+    .AddHttpMessageHandler<ScimAuthenticationHandler>();
+
+  builder.Services.AddScoped<IIdentityProvisioner, Wso2ScimIdentityProvisioner>();
+}
+else
+{
+  builder.Services.AddSingleton<IIdentityProvisioner, DisabledIdentityProvisioner>();
+}
 
 builder.Host.UseSerilog((context, config) =>
     config
