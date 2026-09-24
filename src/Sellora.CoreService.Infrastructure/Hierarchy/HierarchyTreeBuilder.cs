@@ -74,7 +74,8 @@ internal static class HierarchyTreeBuilder
               shop.Address,
               shop.Latitude,
               shop.Longitude,
-              shop.CreditLimit))
+              shop.CreditLimit,
+              shop.OwnerEmail))
             .ToList());
   }
 
@@ -147,7 +148,8 @@ internal static class HierarchyTreeBuilder
                 agency.AgencyId,
                 agency.Name,
                 territories ??
-                  Array.Empty<TerritoryHierarchyNode>());
+                  Array.Empty<TerritoryHierarchyNode>(),
+                agency.Email);
             })
             .ToList());
   }
