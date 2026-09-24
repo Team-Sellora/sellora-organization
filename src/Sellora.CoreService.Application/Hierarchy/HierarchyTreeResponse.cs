@@ -12,10 +12,15 @@ public sealed record ProvinceHierarchyNode(
   IReadOnlyList<AgencyHierarchyNode> Agencies,
   IReadOnlyList<TerritoryHierarchyNode> UnassignedTerritories);
 
+/// <param name="Email">
+/// The agency's contact email. Order snapshots it on each order so the
+/// Notification service can email the agency from the order event alone.
+/// </param>
 public sealed record AgencyHierarchyNode(
   Guid AgencyId,
   string Name,
-  IReadOnlyList<TerritoryHierarchyNode> Territories);
+  IReadOnlyList<TerritoryHierarchyNode> Territories,
+  string? Email = null);
 
 public sealed record TerritoryHierarchyNode(
   Guid TerritoryId,
@@ -30,4 +35,5 @@ public sealed record ShopHierarchyNode(
   string Address,
   decimal Latitude,
   decimal Longitude,
-  decimal CreditLimit);
+  decimal CreditLimit,
+  string? OwnerEmail = null);
