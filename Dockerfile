@@ -26,4 +26,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=publish /app/publish .
 
+# The aspnet image ships a non-root "app" user; 8080 needs no root to bind.
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Sellora.CoreService.Api.dll"]
