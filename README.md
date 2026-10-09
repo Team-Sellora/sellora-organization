@@ -79,3 +79,19 @@ dotnet test
 ```
 
 Configuration should be supplied through local development settings, environment variables, or a secret manager. Do not commit credentials, signing keys, connection strings, or other secrets.
+
+### Local database password
+
+The local Postgres password is not committed. Set it once:
+
+```bash
+cp .env.example .env          # docker compose reads ORGANIZATION_DB_PASSWORD from here
+docker compose up -d
+
+# Give the API the same password (stored outside the repo by user-secrets).
+dotnet user-secrets set "ConnectionStrings:Default" \
+  "Host=localhost;Port=5433;Database=organization_db;Username=sellora;Password=<ORGANIZATION_DB_PASSWORD>" \
+  --project src/Sellora.CoreService.Api
+```
+
+Alternatively set `PGPASSWORD` in your shell; Npgsql uses it when the connection string has no password.
