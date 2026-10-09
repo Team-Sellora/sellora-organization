@@ -52,7 +52,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
               options =>
               {
                 options.Authority = null;
-                options.MetadataAddress = null;
+                options.MetadataAddress = null!;
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {

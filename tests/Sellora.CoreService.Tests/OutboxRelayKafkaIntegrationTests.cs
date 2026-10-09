@@ -209,7 +209,7 @@ public sealed class OutboxRelayKafkaIntegrationTests
     Assert.Null(consumer.Consume(TimeSpan.FromSeconds(1)));
   }
 
-  private async Task CreateTopicAsync(string topic)
+  private static async Task CreateTopicAsync(string topic)
   {
     using var admin = new AdminClientBuilder(
       new AdminClientConfig
