@@ -28,6 +28,7 @@ public sealed class Wso2ScimIdentityProvisioner : IIdentityProvisioner
   private const string Wso2UserSchema = "urn:scim:wso2:schema";
   private const string PatchOpSchema = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
   private const string ScimJson = "application/scim+json";
+  private const string ValueProperty = "value";
 
   // Role IDs never change once created; look each up once per process.
   private static readonly ConcurrentDictionary<string, string> RoleIds = new();
@@ -58,13 +59,13 @@ public sealed class Wso2ScimIdentityProvisioner : IIdentityProvisioner
       ["schemas"] = new JsonArray(CoreUserSchema),
       ["userName"] = userName,
       ["name"] = NameOf(user.DisplayName),
-      ["emails"] = new JsonArray(new JsonObject { ["primary"] = true, ["value"] = userName }),
+      ["emails"] = new JsonArray(new JsonObject { ["primary"] = true, [ValueProperty] = userName }),
       [CustomUserSchema] = new JsonObject { ["companyId"] = user.CompanyId.ToString() }
     };
 
     if (!string.IsNullOrWhiteSpace(user.Phone))
     {
-      body["phoneNumbers"] = new JsonArray(new JsonObject { ["type"] = "mobile", ["value"] = user.Phone.Trim() });
+      body["phoneNumbers"] = new JsonArray(new JsonObject { ["type"] = "mobile", [ValueProperty] = user.Phone.Trim() });
     }
 
     if (temporaryPassword is null)
@@ -99,7 +100,7 @@ public sealed class Wso2ScimIdentityProvisioner : IIdentityProvisioner
         {
           ["op"] = "add",
           ["path"] = "users",
-          ["value"] = new JsonArray(new JsonObject { ["value"] = identityId })
+          [ValueProperty] = new JsonArray(new JsonObject { [ValueProperty] = identityId })
         })
       };
 
