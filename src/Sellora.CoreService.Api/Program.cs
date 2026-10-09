@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Sellora.CoreService.Api.Authorization;
+using Sellora.CoreService.Api.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Sellora.CoreService.Domain.Tenancy;
 using Sellora.CoreService.Api.Tenancy;
@@ -29,9 +28,6 @@ using Sellora.CoreService.Application.TerritoryAssignments;
 using Sellora.CoreService.Infrastructure.TerritoryAssignments;
 using Sellora.CoreService.Application.SalesRepAssignments;
 using Sellora.CoreService.Infrastructure.SalesRepAssignments;
-using Sellora.CoreService.Application.SalesRepAssignments;
-using Sellora.CoreService.Infrastructure.SalesRepAssignments;
-using Microsoft.Extensions.Caching.Memory;
 using Sellora.CoreService.Application.Outbox;
 using Sellora.CoreService.Infrastructure.Outbox;
 using Sellora.CoreService.Api.Outbox;
@@ -52,47 +48,10 @@ builder.Host.UseSerilog((context, config) =>
         .Enrich.FromLogContext()
         .WriteTo.Console());
 
-// Configuration
-var jwt = builder.Configuration.GetSection("Jwt");
-var authority = jwt["Authority"]!;
-var metadataAddress = jwt["MetadataAddress"]!;
-var issuer = jwt["Issuer"]!;
-var audiences = jwt.GetSection("Audience").Get<string[]>()
-    ?? new[] { jwt["Audience"]! };
-// JWT bearer authentication
-// Validates every incoming token against Identity Server's JWKS:
-// signature (via keys fetched from JWKS), issuer, audience, and lifetime.
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = authority;
-        options.MetadataAddress = metadataAddress;
-        // WSO2 IS emits claims under their raw names ("roles", "companyId",
-        // "sub"). Keep them unmapped so RolePolicies and the tenant/current-
-        // user contexts can read "roles" directly instead of ClaimTypes.Role.
-        options.MapInboundClaims = false;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = issuer,
-            ValidateAudience = true,
-            ValidAudiences = audiences,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.FromSeconds(30),
-            RoleClaimType = "roles",
-        };
-
-        if (builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
-        {
-            options.BackchannelHttpHandler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback =
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-            };
-        }
-    });
+// JWT bearer authentication against Identity Server's JWKS.
+builder.Services.AddSelloraJwtAuthentication(
+    builder.Configuration,
+    builder.Environment);
 
 builder.Services.AddAuthorization(options =>
 {
@@ -212,41 +171,7 @@ builder.Services.AddScoped<ICallerScopeService, CallerScopeService>();
 builder.Services.Configure<IdentityProvisioningOptions>(
   builder.Configuration.GetSection(IdentityProvisioningOptions.SectionName));
 builder.Services.AddScoped<IStaffProvisioningService, StaffProvisioningService>();
-
-var identityProvisioning = builder.Configuration
-  .GetSection(IdentityProvisioningOptions.SectionName)
-  .Get<IdentityProvisioningOptions>() ?? new IdentityProvisioningOptions();
-
-if (identityProvisioning.IsConfigured)
-{
-  HttpMessageHandler ProvisioningHandler() => new HttpClientHandler
-  {
-    // Only for a self-signed IS on staging; off unless explicitly set.
-    ServerCertificateCustomValidationCallback = identityProvisioning.AllowUntrustedCertificate
-      ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-      : null
-  };
-
-  builder.Services.AddHttpClient(ScimAuthenticationHandler.TokenClientName, client =>
-      client.Timeout = TimeSpan.FromSeconds(identityProvisioning.TimeoutSeconds))
-    .ConfigurePrimaryHttpMessageHandler(ProvisioningHandler);
-
-  builder.Services.AddSingleton<ScimTokenCache>();
-  builder.Services.AddTransient<ScimAuthenticationHandler>();
-  builder.Services.AddHttpClient(Wso2ScimIdentityProvisioner.HttpClientName, client =>
-    {
-      client.BaseAddress = new Uri(identityProvisioning.BaseUrl.TrimEnd('/') + "/");
-      client.Timeout = TimeSpan.FromSeconds(identityProvisioning.TimeoutSeconds);
-    })
-    .ConfigurePrimaryHttpMessageHandler(ProvisioningHandler)
-    .AddHttpMessageHandler<ScimAuthenticationHandler>();
-
-  builder.Services.AddScoped<IIdentityProvisioner, Wso2ScimIdentityProvisioner>();
-}
-else
-{
-  builder.Services.AddSingleton<IIdentityProvisioner, DisabledIdentityProvisioner>();
-}
+builder.Services.AddSelloraIdentityProvisioning(builder.Configuration);
 
 builder.Host.UseSerilog((context, config) =>
     config
@@ -334,7 +259,10 @@ if (!app.Environment.IsProduction())
     app.MapGet("/nonexistent", () => { throw new InvalidOperationException("Test failure"); });
 }
 
-app.Run();
+await app.RunAsync();
 
 // Exposes the implicit Program class to the test project (WebApplicationFactory).
-public partial class Program { }
+public partial class Program
+{
+    protected Program() { }
+}
