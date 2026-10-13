@@ -5,7 +5,8 @@ services:
     environment:
       POSTGRES_DB: organization_db
       POSTGRES_USER: sellora
-      POSTGRES_PASSWORD: sellora_dev_pw
+      # Set in .env (copy .env.example); never committed.
+      POSTGRES_PASSWORD: ${ORGANIZATION_DB_PASSWORD:?Set ORGANIZATION_DB_PASSWORD in .env - copy .env.example}
     ports:
       - "5433:5432"
     volumes:

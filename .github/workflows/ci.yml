@@ -106,7 +106,10 @@ jobs:
           ${{ runner.temp }}/scanner/dotnet-sonarscanner begin \
             /k:"Team-Sellora_sellora-organization" \
             /o:"team-sellora" \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
+            /d:sonar.exclusions="**/Migrations/**" \
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Program.cs"
 
       - name: Build solution
         run: dotnet build Sellora.CoreService.sln --configuration Release --no-restore
@@ -129,13 +132,15 @@ jobs:
           docker logs "${CONTAINER_ID}" || true
           exit 1
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
           dotnet test Sellora.CoreService.sln \
             --configuration Release \
             --no-build \
+            --collect:"XPlat Code Coverage" \
             --logger "trx;LogFileName=test-results.trx" \
-            --results-directory ./TestResults
+            --results-directory ./TestResults \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
       - name: SonarQube end
         if: always()
@@ -161,8 +166,8 @@ jobs:
           }
           trap cleanup EXIT
 
+          # ASPNETCORE_URLS (port 8080) comes from the image's Dockerfile.
           docker run --rm -d \
-            -e ASPNETCORE_URLS=http://+:8080 \
             -e ConnectionStrings__Default="Host=host.docker.internal;Port=5432;Database=organization_ci;Username=sellora_ci;Password=sellora_ci_password" \
             --add-host=host.docker.internal:host-gateway \
             -p 8080:8080 \

@@ -83,28 +83,33 @@ public sealed class HierarchyRollUpService : IHierarchyRollUpService
       .ToListAsync(cancellationToken);
 
     return rows
-      .Select(row => new ProvinceRollUpResponse(
-        row.ProvinceId,
-        row.Code,
-        row.Name,
-        row.Status,
-        row.Manager is null
+      .Select(row =>
+      {
+        var reportsToAdmin = row.ReportsToAdmin is null
           ? null
-          : new AreaManagerRollUpSummary(
-              row.Manager.StaffProfileId,
-              row.Manager.DisplayName,
-              row.Manager.Email,
-              row.ReportsToAdmin is null
-                ? null
-                : new ReportingAdminRollUpSummary(
-                    row.ReportsToAdmin.StaffProfileId,
-                    row.ReportsToAdmin.DisplayName,
-                    row.ReportsToAdmin.Email)),
-        row.AgencyCount,
-        row.TerritoryCount,
-        row.ShopCount,
-        row.UnassignedTerritoryCount,
-        row.UnassignedTerritoryCount > 0))
+          : new ReportingAdminRollUpSummary(
+              row.ReportsToAdmin.StaffProfileId,
+              row.ReportsToAdmin.DisplayName,
+              row.ReportsToAdmin.Email);
+
+        return new ProvinceRollUpResponse(
+          row.ProvinceId,
+          row.Code,
+          row.Name,
+          row.Status,
+          row.Manager is null
+            ? null
+            : new AreaManagerRollUpSummary(
+                row.Manager.StaffProfileId,
+                row.Manager.DisplayName,
+                row.Manager.Email,
+                reportsToAdmin),
+          row.AgencyCount,
+          row.TerritoryCount,
+          row.ShopCount,
+          row.UnassignedTerritoryCount,
+          row.UnassignedTerritoryCount > 0);
+      })
       .ToList();
   }
 }

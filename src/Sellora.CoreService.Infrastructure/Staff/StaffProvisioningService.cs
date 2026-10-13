@@ -22,7 +22,7 @@ public sealed class StaffProvisioningService : IStaffProvisioningService
 {
   // Who may create whom. Area Managers and Agency Operators are then linked
   // to provinces/agencies through the existing assignment screens.
-  private static readonly IReadOnlyDictionary<string, string[]> CreatableRoles =
+  private static readonly Dictionary<string, string[]> CreatableRoles =
     new Dictionary<string, string[]>
     {
       [Roles.CompanyAdmin] = new[] { Roles.CompanyAdmin, Roles.AreaManager, Roles.AgencyOperator, Roles.SalesRep },
@@ -71,7 +71,7 @@ public sealed class StaffProvisioningService : IStaffProvisioningService
     if (string.IsNullOrEmpty(role) || !allowed.Contains(role))
     {
       return CreateStaffResult.Failed(
-        role is not null && IsKnownRole(role) ? CreateStaffOutcome.NotAllowed : CreateStaffOutcome.InvalidRequest,
+        RoleRejectionOutcome(role),
         $"As {callerRole} you can add: {string.Join(", ", allowed)}.");
     }
 
@@ -97,22 +97,13 @@ public sealed class StaffProvisioningService : IStaffProvisioningService
       return CreateStaffResult.Failed(CreateStaffOutcome.EmailAlreadyUsed, $"A staff member with email {email} already exists.");
     }
 
-    ProvisionedIdentity identity;
-    try
+    var (identity, provisioningFailure) = await ProvisionLoginAsync(
+      new NewIdentityUser(email, displayName, phone, role, companyId.Value),
+      cancellationToken);
+
+    if (identity is null)
     {
-      identity = await _provisioner.CreateUserAsync(
-        new NewIdentityUser(email, displayName, phone, role, companyId.Value),
-        cancellationToken);
-    }
-    catch (IdentityUserAlreadyExistsException)
-    {
-      return CreateStaffResult.Failed(
-        CreateStaffOutcome.EmailAlreadyUsed,
-        $"A login for {email} already exists in the identity provider.");
-    }
-    catch (IdentityProvisioningUnavailableException exception)
-    {
-      return CreateStaffResult.Failed(CreateStaffOutcome.IdentityProviderUnavailable, exception.Message);
+      return provisioningFailure!;
     }
 
     var profile = new StaffProfile
@@ -156,6 +147,29 @@ public sealed class StaffProvisioningService : IStaffProvisioningService
       identity.UserName,
       identity.TemporaryPassword));
   }
+
+  private async Task<(ProvisionedIdentity? Identity, CreateStaffResult? Failure)> ProvisionLoginAsync(
+    NewIdentityUser user,
+    CancellationToken cancellationToken)
+  {
+    try
+    {
+      return (await _provisioner.CreateUserAsync(user, cancellationToken), null);
+    }
+    catch (IdentityUserAlreadyExistsException)
+    {
+      return (null, CreateStaffResult.Failed(
+        CreateStaffOutcome.EmailAlreadyUsed,
+        $"A login for {user.Email} already exists in the identity provider."));
+    }
+    catch (IdentityProvisioningUnavailableException exception)
+    {
+      return (null, CreateStaffResult.Failed(CreateStaffOutcome.IdentityProviderUnavailable, exception.Message));
+    }
+  }
+
+  private static CreateStaffOutcome RoleRejectionOutcome(string? role) =>
+    role is not null && IsKnownRole(role) ? CreateStaffOutcome.NotAllowed : CreateStaffOutcome.InvalidRequest;
 
   private static bool IsKnownRole(string role) =>
     role is Roles.CompanyAdmin or Roles.AreaManager or Roles.AgencyOperator or Roles.SalesRep or Roles.ShopOwner;

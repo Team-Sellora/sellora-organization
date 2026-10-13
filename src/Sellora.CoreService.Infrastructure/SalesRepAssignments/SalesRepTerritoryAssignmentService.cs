@@ -41,39 +41,15 @@ public sealed class SalesRepTerritoryAssignmentService
     CancellationToken cancellationToken = default)
   {
     var callerSub = _currentUser.Subject;
+    var caller = await FindCallerOperatorAsync(callerSub, cancellationToken);
 
-    if (string.IsNullOrWhiteSpace(callerSub))
+    if (caller is null)
     {
       return AssignSalesRepToTerritoryResult
         .CallerNotAnActiveAgencyOperator();
     }
 
-    var operatorProfile = await _db.StaffProfiles.SingleOrDefaultAsync(
-      profile =>
-        profile.IdentitySub == callerSub &&
-        profile.Role == Roles.AgencyOperator &&
-        profile.Status == HierarchyStatus.Active,
-      cancellationToken);
-
-    if (operatorProfile is null)
-    {
-      return AssignSalesRepToTerritoryResult
-        .CallerNotAnActiveAgencyOperator();
-    }
-
-    var operatorAgencyIds = await _db.AgencyOperatorAssignments
-      .Where(assignment =>
-        assignment.OperatorId == operatorProfile.StaffProfileId &&
-        assignment.EndsAt == null)
-      .Select(assignment => assignment.AgencyId)
-      .Distinct()
-      .ToListAsync(cancellationToken);
-
-    if (operatorAgencyIds.Count == 0)
-    {
-      return AssignSalesRepToTerritoryResult
-        .CallerNotAnActiveAgencyOperator();
-    }
+    var (operatorProfile, operatorAgencyIds) = caller.Value;
 
     var territory = await _db.Territories.SingleOrDefaultAsync(
       candidate =>
@@ -156,6 +132,69 @@ public sealed class SalesRepTerritoryAssignmentService
       .DistinctBy(assignment => assignment.AssignmentId)
       .ToList();
 
+    return await ReplaceAssignmentsAsync(
+      assignmentsToEnd,
+      territory,
+      salesRep,
+      agencyId,
+      callerSub!,
+      cancellationToken);
+  }
+
+  /// <summary>
+  /// The caller's active Agency Operator profile and the agencies they
+  /// currently operate, or null when either is missing.
+  /// </summary>
+  private async Task<(StaffProfile Operator, List<Guid> AgencyIds)?>
+    FindCallerOperatorAsync(
+      string? callerSub,
+      CancellationToken cancellationToken)
+  {
+    if (string.IsNullOrWhiteSpace(callerSub))
+    {
+      return null;
+    }
+
+    var operatorProfile = await _db.StaffProfiles.SingleOrDefaultAsync(
+      profile =>
+        profile.IdentitySub == callerSub &&
+        profile.Role == Roles.AgencyOperator &&
+        profile.Status == HierarchyStatus.Active,
+      cancellationToken);
+
+    if (operatorProfile is null)
+    {
+      return null;
+    }
+
+    var operatorAgencyIds = await _db.AgencyOperatorAssignments
+      .Where(assignment =>
+        assignment.OperatorId == operatorProfile.StaffProfileId &&
+        assignment.EndsAt == null)
+      .Select(assignment => assignment.AgencyId)
+      .Distinct()
+      .ToListAsync(cancellationToken);
+
+    if (operatorAgencyIds.Count == 0)
+    {
+      return null;
+    }
+
+    return (operatorProfile, operatorAgencyIds);
+  }
+
+  /// <summary>
+  /// Ends the given active bindings and records the new one in a single
+  /// transaction, then invalidates the cached bindings that changed.
+  /// </summary>
+  private async Task<AssignSalesRepToTerritoryResult> ReplaceAssignmentsAsync(
+    List<SalesRepTerritoryAssignment> assignmentsToEnd,
+    Territory territory,
+    StaffProfile salesRep,
+    Guid agencyId,
+    string callerSub,
+    CancellationToken cancellationToken)
+  {
     var now = DateTimeOffset.UtcNow;
 
     await using var transaction = await _db.Database.BeginTransactionAsync(
