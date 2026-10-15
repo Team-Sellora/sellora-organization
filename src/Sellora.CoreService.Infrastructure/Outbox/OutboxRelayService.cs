@@ -141,12 +141,7 @@ public sealed class OutboxRelayService : BackgroundService
           "Outbox message {OutboxId} could not be published; it will retry.",
           message.OutboxId);
 
-        var lastError = exception.Message;
-
-        if (lastError.Length > 2000)
-        {
-          lastError = lastError.Substring(0, 2000);
-        }
+        var lastError = TruncateLastError(exception.Message);
 
         await db.OutboxMessages
           .IgnoreQueryFilters()
@@ -166,5 +161,21 @@ public sealed class OutboxRelayService : BackgroundService
             cancellationToken);
       }
     }
+  }
+
+  /// <summary>
+  /// Shortens a publish failure message so it fits the last_error column
+  /// (max length 2000). No database access occurs here.
+  /// </summary>
+  internal static string TruncateLastError(string errorMessage)
+  {
+    var lastError = errorMessage;
+
+    if (lastError.Length > 2000)
+    {
+      lastError = lastError.Substring(0, 2000);
+    }
+
+    return lastError;
   }
 }
