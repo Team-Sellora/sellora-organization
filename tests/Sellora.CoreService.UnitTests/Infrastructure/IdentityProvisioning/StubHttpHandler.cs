@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Infrastructure.IdentityProvisioning;
 
 /// <summary>
 /// Answers HTTP calls from a test-supplied function and records each request

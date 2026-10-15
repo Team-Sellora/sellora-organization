@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using Sellora.CoreService.Application.IdentityProvisioning;
 using Sellora.CoreService.Infrastructure.IdentityProvisioning;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Infrastructure.IdentityProvisioning;
 
 /// <summary>
 /// Credentials added to SCIM2 calls: basic admin credentials for local

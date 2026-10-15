@@ -12,7 +12,7 @@ using Sellora.CoreService.Application.Territories;
 using Sellora.CoreService.Application.TerritoryAssignments;
 using Sellora.CoreService.Domain.Entities;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Api.Controllers;
 
 /// <summary>
 /// Calls the controllers directly with stubbed services, so every service

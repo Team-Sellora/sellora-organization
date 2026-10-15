@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Sellora.CoreService.Application.IdentityProvisioning;
 using Sellora.CoreService.Infrastructure.IdentityProvisioning;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Infrastructure.IdentityProvisioning;
 
 /// <summary>
 /// The SCIM2 conversation with WSO2 IS, against a stubbed server: what is

@@ -12,7 +12,7 @@ using Sellora.CoreService.Api.Configuration;
 using Sellora.CoreService.Application.IdentityProvisioning;
 using Sellora.CoreService.Infrastructure.IdentityProvisioning;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Api.Configuration;
 
 /// <summary>
 /// Startup registrations: JWT validation settings per environment and the

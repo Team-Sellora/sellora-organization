@@ -1,7 +1,7 @@
 using Confluent.Kafka;
 using Sellora.CoreService.Infrastructure.Kafka;
 
-namespace Sellora.CoreService.Tests;
+namespace Sellora.CoreService.UnitTests.Infrastructure.Kafka;
 
 [Trait("Category", "Unit")]
 public sealed class KafkaSaslConfiguratorTests
