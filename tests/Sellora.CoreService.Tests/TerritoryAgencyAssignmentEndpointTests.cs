@@ -76,9 +76,17 @@ public sealed class TerritoryAgencyAssignmentEndpointTests
 
     Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
+    // Both territory and agency are outside the caller's provinces. The
+    // territory check runs first, so the detail must name the territory;
+    // "not in your provinces" alone would also match the agency message.
     var body = await response.Content.ReadAsStringAsync();
-    Assert.Contains("territory", body, StringComparison.OrdinalIgnoreCase);
-    Assert.Contains("not in your provinces", body, StringComparison.OrdinalIgnoreCase);
+    using var problem = System.Text.Json.JsonDocument.Parse(body);
+    Assert.Equal(
+      "Territory assignment outside your scope",
+      problem.RootElement.GetProperty("title").GetString());
+    Assert.Equal(
+      $"Territory '{HierarchyEndpointTestData.SouthTerritoryId}' is not in your provinces.",
+      problem.RootElement.GetProperty("detail").GetString());
 
     using var scope = _factory.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
