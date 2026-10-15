@@ -23,7 +23,10 @@ namespace Sellora.CoreService.UnitTests.Api.Outbox;
 /// <para>
 /// Coverage criterion: Each Choice, 4 cases, split by expected behaviour.
 /// The stored value is returned as is (Fact); the other three blocks
-/// produce a new GUID, so they assert the shape instead (Theory).
+/// produce a new GUID, so they assert the shape instead (Theory), and that
+/// the result is not the stored item's text. Without that second assertion,
+/// converting the boxed Guid with ToString would also pass, because its
+/// text parses as a GUID too.
 /// </para>
 /// <para>
 /// Test double: FakeHttpContextAccessor is a fake. It is a working
@@ -47,6 +50,9 @@ public sealed class HttpCorrelationIdAccessorTests
     NonStringObject,
     NoHttpContext
   }
+
+  private static readonly Guid NonStringItem =
+    Guid.Parse("9d1e2f3a-4b5c-4d6e-8f70-81a2b3c4d5e6");
 
   private readonly FakeHttpContextAccessor _httpContextAccessor = new();
   private readonly HttpCorrelationIdAccessor _sut;
@@ -76,23 +82,27 @@ public sealed class HttpCorrelationIdAccessorTests
   public void GetCorrelationId_NoUsableItem_ReturnsNewGuid(UnusableItemKind itemKind)
   {
     // Arrange
-    _httpContextAccessor.HttpContext = CreateHttpContext(itemKind);
+    var (httpContext, storedItemText) = CreateHttpContext(itemKind);
+    _httpContextAccessor.HttpContext = httpContext;
 
     // Act
     var result = _sut.GetCorrelationId();
 
     // Assert
     Guid.TryParse(result, out _).Should().BeTrue();
+    result.Should().NotBe(storedItemText);
   }
 
-  private static HttpContext? CreateHttpContext(UnusableItemKind itemKind)
+  private static (HttpContext? HttpContext, string? StoredItemText) CreateHttpContext(
+    UnusableItemKind itemKind)
   {
     return itemKind switch
     {
-      UnusableItemKind.WhitespaceString => CreateHttpContextWithItem("  "),
-      UnusableItemKind.NonStringObject => CreateHttpContextWithItem(
-        Guid.Parse("9d1e2f3a-4b5c-4d6e-8f70-81a2b3c4d5e6")),
-      UnusableItemKind.NoHttpContext => null,
+      UnusableItemKind.WhitespaceString => (CreateHttpContextWithItem("  "), "  "),
+      UnusableItemKind.NonStringObject => (
+        CreateHttpContextWithItem(NonStringItem),
+        NonStringItem.ToString()),
+      UnusableItemKind.NoHttpContext => (null, null),
       _ => throw new ArgumentOutOfRangeException(nameof(itemKind), itemKind, null)
     };
   }
