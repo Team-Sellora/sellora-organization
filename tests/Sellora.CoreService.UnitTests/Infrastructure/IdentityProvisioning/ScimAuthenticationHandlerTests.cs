@@ -11,6 +11,22 @@ namespace Sellora.CoreService.UnitTests.Infrastructure.IdentityProvisioning;
 /// Credentials added to SCIM2 calls: basic admin credentials for local
 /// development, otherwise a cached client-credentials token.
 /// </summary>
+/// <remarks>
+/// <para>
+/// IsConfigured Theory. Characteristics and blocks: C1 BaseUrl: set (base) /
+/// empty. C2 AuthMode: ClientCredentials (base) / Basic. C3 credentials for
+/// that mode: complete (base) / one missing.
+/// </para>
+/// <para>
+/// Boundary values: none numeric.
+/// </para>
+/// <para>
+/// Coverage criterion: Base Choice, 1 + (2-1) + (2-1) + (2-1) = 4 rows, plus
+/// one extra row (Basic with a missing password). The Base Choice rows only
+/// show the ClientCredentials credential check returning false; the extra
+/// row shows the Basic credential check returning false as well.
+/// </para>
+/// </remarks>
 [Trait("Category", "Unit")]
 public sealed class ScimAuthenticationHandlerTests
 {
@@ -90,24 +106,50 @@ public sealed class ScimAuthenticationHandlerTests
     scim.Requests.Should().BeEmpty();
   }
 
-  [Fact]
-  public void Options_DescribeWhetherProvisioningCanRun()
+  [Theory]
+  [InlineData("https://is.test/", "ClientCredentials", "client id", "client-secret", "", "", true)] // Base: base URL, client credentials complete
+  [InlineData("", "ClientCredentials", "client id", "client-secret", "", "", false)] // C1 base URL empty
+  [InlineData("https://is.test/", "Basic", "", "", "admin", "secret", true)] // C2 Basic mode, admin credentials complete
+  [InlineData("https://is.test/", "ClientCredentials", "id", "", "", "", false)] // C3 client secret missing
+  [InlineData("https://is.test/", "Basic", "", "", "admin", "", false)] // Extra: Basic mode, admin password missing
+  public void IsConfigured_BaseUrlAndCredentialsForMode_ReturnsWhetherProvisioningCanRun(
+    string baseUrl,
+    string authMode,
+    string clientId,
+    string clientSecret,
+    string adminUserName,
+    string adminPassword,
+    bool expected)
   {
-    new IdentityProvisioningOptions().IsConfigured.Should().BeFalse();
-    ClientCredentialsOptions().IsConfigured.Should().BeTrue();
-    new IdentityProvisioningOptions { BaseUrl = "https://is.test", ClientId = "id" }
-      .IsConfigured.Should().BeFalse();
-    new IdentityProvisioningOptions
+    // Arrange
+    var options = new IdentityProvisioningOptions
     {
-      BaseUrl = "https://is.test",
-      AuthMode = "Basic",
-      AdminUserName = "admin",
-      AdminPassword = "secret"
-    }.IsConfigured.Should().BeTrue();
-    new IdentityProvisioningOptions { BaseUrl = "https://is.test", AuthMode = "Basic", AdminUserName = "admin" }
-      .IsConfigured.Should().BeFalse();
-    new IdentityProvisioningOptions { BaseUrl = "https://is.test/" }
-      .ResolvedTokenEndpoint.Should().Be("https://is.test/oauth2/token");
+      BaseUrl = baseUrl,
+      AuthMode = authMode,
+      ClientId = clientId,
+      ClientSecret = clientSecret,
+      AdminUserName = adminUserName,
+      AdminPassword = adminPassword
+    };
+
+    // Act
+    var result = options.IsConfigured;
+
+    // Assert
+    result.Should().Be(expected);
+  }
+
+  [Fact]
+  public void ResolvedTokenEndpoint_NoTokenEndpointSet_AppendsOAuthPathToBaseUrl()
+  {
+    // Arrange
+    var options = new IdentityProvisioningOptions { BaseUrl = "https://is.test/" };
+
+    // Act
+    var result = options.ResolvedTokenEndpoint;
+
+    // Assert
+    result.Should().Be("https://is.test/oauth2/token");
   }
 
   private static IdentityProvisioningOptions ClientCredentialsOptions(string tokenEndpoint = "") => new()
