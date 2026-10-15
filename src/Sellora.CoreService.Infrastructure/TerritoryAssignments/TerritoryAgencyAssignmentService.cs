@@ -78,7 +78,12 @@ public sealed class TerritoryAgencyAssignmentService
       .Select(assignment => assignment.ProvinceId)
       .ToHashSetAsync(cancellationToken);
 
-    if (!managedProvinceIds.Contains(territory.ProvinceId))
+    var provinceScope = DecideProvinceScope(
+      managedProvinceIds,
+      territory.ProvinceId,
+      agency.ProvinceId);
+
+    if (provinceScope == AssignTerritoryAgencyOutcome.TerritoryNotInManagedProvinces)
     {
       _logger.LogWarning(
         "Rejected territory-agency assignment: AreaManager {AreaManagerId} " +
@@ -92,7 +97,7 @@ public sealed class TerritoryAgencyAssignmentService
         request.TerritoryId);
     }
 
-    if (!managedProvinceIds.Contains(agency.ProvinceId))
+    if (provinceScope == AssignTerritoryAgencyOutcome.AgencyNotInManagedProvinces)
     {
       _logger.LogWarning(
         "Rejected territory-agency assignment: AreaManager {AreaManagerId} " +
@@ -106,7 +111,7 @@ public sealed class TerritoryAgencyAssignmentService
         request.AgencyId);
     }
 
-    if (territory.ProvinceId != agency.ProvinceId)
+    if (provinceScope == AssignTerritoryAgencyOutcome.AgencyNotInTerritoryProvince)
     {
       _logger.LogWarning(
         "Rejected territory-agency assignment: AreaManager {AreaManagerId} " +
@@ -195,5 +200,34 @@ public sealed class TerritoryAgencyAssignmentService
     await transaction.CommitAsync(cancellationToken);
 
     return AssignTerritoryAgencyResult.Success(assignment);
+  }
+
+  /// <summary>
+  /// Decides whether the caller's live province assignments allow linking
+  /// the territory to the agency. Checks run in a fixed order: territory
+  /// scope, then agency scope, then same province. Returns Success when
+  /// every check passes. No database access or logging occurs here.
+  /// </summary>
+  internal static AssignTerritoryAgencyOutcome DecideProvinceScope(
+    IReadOnlySet<Guid> managedProvinceIds,
+    Guid territoryProvinceId,
+    Guid agencyProvinceId)
+  {
+    if (!managedProvinceIds.Contains(territoryProvinceId))
+    {
+      return AssignTerritoryAgencyOutcome.TerritoryNotInManagedProvinces;
+    }
+
+    if (!managedProvinceIds.Contains(agencyProvinceId))
+    {
+      return AssignTerritoryAgencyOutcome.AgencyNotInManagedProvinces;
+    }
+
+    if (territoryProvinceId != agencyProvinceId)
+    {
+      return AssignTerritoryAgencyOutcome.AgencyNotInTerritoryProvince;
+    }
+
+    return AssignTerritoryAgencyOutcome.Success;
   }
 }
