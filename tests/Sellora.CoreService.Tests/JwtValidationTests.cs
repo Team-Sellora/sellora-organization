@@ -8,9 +8,36 @@ using Xunit;
 
 namespace Sellora.CoreService.Tests;
 
+/// <summary>
+/// JWT bearer validation end to end: a request without a usable token is
+/// rejected with 401 before any authorization policy runs.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Characteristic and blocks: the bearer token. Missing / signed with an
+/// untrusted key / expired / valid. The valid block is covered by
+/// RolePolicyTests (a SalesRep token gets 200), so it is not repeated here.
+/// </para>
+/// <para>
+/// Boundary values: none numeric. The expired token is 5 minutes past its
+/// lifetime, well outside the 30 second clock skew.
+/// </para>
+/// <para>
+/// Coverage criterion: Each Choice over the invalid blocks, 3 rows. Each row
+/// keeps the path its original Fact used, so the conversion does not change
+/// what is exercised.
+/// </para>
+/// </remarks>
 [Trait("Category", "Integration")]
 public class JwtValidationTests : IClassFixture<TestWebAppFactory>
 {
+    public enum TokenKind
+    {
+        Missing,
+        UntrustedSignature,
+        Expired
+    }
+
     private readonly TestWebAppFactory _factory;
 
     public JwtValidationTests(TestWebAppFactory factory)
@@ -19,36 +46,55 @@ public class JwtValidationTests : IClassFixture<TestWebAppFactory>
         _factory.CreateClient();
     }
 
-    [Fact]
-    public async Task Request_WithNoToken_Returns401()
+    [Theory]
+    [InlineData(TokenKind.Missing, "/whoami")] // No Authorization header
+    [InlineData(TokenKind.UntrustedSignature, "/whoami")] // Signed with a key the service does not trust
+    [InlineData(TokenKind.Expired, "/api/demo/sales-rep")] // Trusted key, expired 5 minutes ago
+    public async Task Request_WithMissingOrInvalidToken_Returns401(TokenKind tokenKind, string path)
     {
+        // Arrange
         var client = _factory.CreateClient();
+        var request = CreateRequest(path, CreateToken(tokenKind));
 
-        var response = await client.GetAsync("/whoami");
+        // Act
+        var response = await client.SendAsync(request);
 
+        // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Request_WithTamperedSignature_Returns401()
+    private string? CreateToken(TokenKind tokenKind)
     {
-        var client = _factory.CreateClient();
+        return tokenKind switch
+        {
+            TokenKind.Missing => null,
+            TokenKind.UntrustedSignature => CreateTokenSignedWithUntrustedKey(),
+            // Token signed with the trusted test key but expired 5 minutes ago.
+            TokenKind.Expired => TestTokenFactory.CreateToken(
+                _factory.Issuer, _factory.Audience,
+                role: "SalesRep",
+                lifetime: TimeSpan.FromMinutes(-5)),
+            _ => throw new ArgumentOutOfRangeException(nameof(tokenKind), tokenKind, null)
+        };
+    }
 
-        // Mint a token signed with a key the service does NOT trust.
-        // The service only trusts keys from Identity Server's JWKS, so a token
-        // signed with this throwaway key must be rejected on signature grounds.
-        var token = CreateTokenSignedWithUntrustedKey();
+    private static HttpRequestMessage CreateRequest(string path, string? token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, path);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/whoami");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (token is not null)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
 
-        var response = await client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        return request;
     }
 
     private string CreateTokenSignedWithUntrustedKey()   // not static — needs _factory
     {
+        // Mint a token signed with a key the service does NOT trust.
+        // The service only trusts keys from Identity Server's JWKS, so a token
+        // signed with this throwaway key must be rejected on signature grounds.
         using var rsa = RSA.Create(2048);
         var securityKey = new RsaSecurityKey(rsa);
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
@@ -61,24 +107,5 @@ public class JwtValidationTests : IClassFixture<TestWebAppFactory>
             expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);
         return handler.WriteToken(token);
-    }
-
-    [Fact]
-    public async Task Request_WithExpiredToken_Returns401()
-    {
-        var client = _factory.CreateClient();
-
-        // Token signed with the trusted test key but expired 5 minutes ago.
-        var token = TestTokenFactory.CreateToken(
-            _factory.Issuer, _factory.Audience,
-            role: "SalesRep",
-            lifetime: TimeSpan.FromMinutes(-5));
-
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/demo/sales-rep");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var response = await client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
