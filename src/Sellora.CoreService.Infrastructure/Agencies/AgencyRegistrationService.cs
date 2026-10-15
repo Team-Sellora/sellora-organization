@@ -238,7 +238,7 @@ public sealed class AgencyRegistrationService : IAgencyRegistrationService
     return RegisterAgencyResult.Success(agency);
   }
 
-  private static bool IsUniqueAgencyNameViolation(DbUpdateException ex)
+  internal static bool IsUniqueAgencyNameViolation(DbUpdateException ex)
   {
     return ex.InnerException is PostgresException pg &&
            pg.SqlState == PostgresErrorCodes.UniqueViolation &&

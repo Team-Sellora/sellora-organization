@@ -174,7 +174,7 @@ public sealed class TerritoryRegistrationService : ITerritoryRegistrationService
     return RegisterTerritoryResult.Success(territory);
   }
 
-  private static bool IsConstraintViolation(
+  internal static bool IsConstraintViolation(
     DbUpdateException ex,
     string constraintName)
   {
