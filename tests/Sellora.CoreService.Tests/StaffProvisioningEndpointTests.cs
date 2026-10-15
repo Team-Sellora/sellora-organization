@@ -15,6 +15,7 @@ namespace Sellora.CoreService.Tests;
 /// POST /api/staff and owner provisioning on POST /api/shops: one action
 /// creates the login and the profile, linked by the provider's ID.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class StaffProvisioningEndpointTests : IClassFixture<ProvisioningWebAppFactory>
 {
   private readonly ProvisioningWebAppFactory _factory;

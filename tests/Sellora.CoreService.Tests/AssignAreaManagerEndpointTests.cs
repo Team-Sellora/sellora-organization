@@ -14,6 +14,7 @@ namespace Sellora.CoreService.Tests;
 /// Verifies PUT /api/provinces/{id}/area-manager against the three CSP-62 ACs
 /// plus the CompanyAdmin policy guard.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class AssignAreaManagerEndpointTests
   : IClassFixture<TestWebAppFactory>
 {

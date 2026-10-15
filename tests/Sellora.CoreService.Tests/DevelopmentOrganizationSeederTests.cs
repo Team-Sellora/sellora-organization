@@ -4,6 +4,7 @@ using Sellora.CoreService.Infrastructure.Persistence.Seeding;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class DevelopmentOrganizationSeederTests
   : IClassFixture<PostgreSqlConstraintFixture>
 {

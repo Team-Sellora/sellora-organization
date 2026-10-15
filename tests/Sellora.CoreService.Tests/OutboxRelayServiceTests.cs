@@ -21,6 +21,7 @@ namespace Sellora.CoreService.Tests;
 /// either published or scheduled far in the future, so they never affect
 /// the next test.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class OutboxRelayServiceTests
   : IClassFixture<PostgreSqlConstraintFixture>, IAsyncLifetime
 {

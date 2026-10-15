@@ -9,6 +9,7 @@ namespace Sellora.CoreService.Tests;
 /// Verifies hierarchy uniqueness rules directly against PostgreSQL.
 /// These tests bypass controllers and application services.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class HierarchyUniqueConstraintTests
   : IClassFixture<PostgreSqlConstraintFixture>
 {

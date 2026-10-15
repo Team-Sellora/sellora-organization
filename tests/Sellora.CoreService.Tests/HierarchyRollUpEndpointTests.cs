@@ -9,6 +9,7 @@ using Sellora.CoreService.Infrastructure.Persistence;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class HierarchyRollUpEndpointTests
   : IClassFixture<TestWebAppFactory>
 {

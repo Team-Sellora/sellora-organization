@@ -6,6 +6,7 @@ using Sellora.CoreService.Domain.Identity;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class CompanyAdminListEndpointTests
   : IClassFixture<TestWebAppFactory>
 {

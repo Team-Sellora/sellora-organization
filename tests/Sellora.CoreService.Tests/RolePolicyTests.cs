@@ -8,6 +8,7 @@ namespace Sellora.CoreService.Tests;
 /// Verifies the named role authorization policies: the correct role is admitted
 /// and any other role is forbidden at the endpoint.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RolePolicyTests : IClassFixture<TestWebAppFactory>
 {
   private readonly TestWebAppFactory _factory;

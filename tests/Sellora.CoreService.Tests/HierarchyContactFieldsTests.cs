@@ -9,6 +9,7 @@ namespace Sellora.CoreService.Tests;
 /// US-E4-4: Order snapshots the agency email and shop owner email from
 /// /api/hierarchy, so order events can be emailed without calling back.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class HierarchyContactFieldsTests : IClassFixture<TestWebAppFactory>
 {
   private readonly TestWebAppFactory _factory;

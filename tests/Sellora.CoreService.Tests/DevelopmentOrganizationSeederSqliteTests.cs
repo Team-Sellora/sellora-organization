@@ -10,6 +10,7 @@ namespace Sellora.CoreService.Tests;
 /// DevelopmentOrganizationSeederTests additionally proves it satisfies the
 /// real constraints.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class DevelopmentOrganizationSeederSqliteTests : IDisposable
 {
   private readonly SqliteCoreDatabase _database = new();

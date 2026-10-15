@@ -18,6 +18,7 @@ namespace Sellora.CoreService.Tests.Territories;
 /// is exercised end-to-end. An in-memory EF provider will NOT enforce the
 /// unique index and would silently pass a buggy implementation.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class TerritoryRegistrationServiceTests
   : IClassFixture<PostgreSqlConstraintFixture>, IAsyncLifetime
 {

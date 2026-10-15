@@ -7,6 +7,7 @@ using Sellora.CoreService.Domain.Identity;
 namespace Sellora.CoreService.Tests;
 
 /// <summary>GET /api/me/scope — the caller's position, from their sub.</summary>
+[Trait("Category", "Integration")]
 public sealed class CallerScopeEndpointTests : IClassFixture<TestWebAppFactory>
 {
   private readonly TestWebAppFactory _factory;

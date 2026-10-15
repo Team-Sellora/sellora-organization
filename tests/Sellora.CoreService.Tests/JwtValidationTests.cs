@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public class JwtValidationTests : IClassFixture<TestWebAppFactory>
 {
     private readonly TestWebAppFactory _factory;

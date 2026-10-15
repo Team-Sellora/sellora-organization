@@ -5,6 +5,7 @@ using Sellora.CoreService.Application.Hierarchy;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class HierarchyEndpointTests
   : IClassFixture<TestWebAppFactory>
 {

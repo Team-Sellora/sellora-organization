@@ -13,6 +13,7 @@ using Xunit;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class TerritoryAgencyOpenWorkGuardTests
   : IClassFixture<BlockingOpenWorkWebAppFactory>
 {

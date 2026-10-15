@@ -23,6 +23,7 @@ namespace Sellora.CoreService.Tests;
 /// against the shared two-company test hierarchy. Happy paths are covered
 /// end to end by the endpoint tests.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class AgencyOperatorServicesSqliteTests : IDisposable
 {
   private const string OperatorWithoutAgencySubject = "operator-without-agency";

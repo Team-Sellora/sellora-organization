@@ -12,6 +12,7 @@ using Sellora.CoreService.Application.Territories;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Integration")]
 public sealed class TerritoryAgencyAssignmentEndpointTests
   : IClassFixture<TestWebAppFactory>
 {

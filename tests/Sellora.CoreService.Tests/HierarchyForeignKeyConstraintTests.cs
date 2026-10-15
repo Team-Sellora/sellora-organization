@@ -9,6 +9,7 @@ namespace Sellora.CoreService.Tests;
 /// Verifies hierarchy foreign keys and non-null requirements directly
 /// against PostgreSQL, bypassing controllers and application services.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class HierarchyForeignKeyConstraintTests
   : IClassFixture<PostgreSqlConstraintFixture>
 {

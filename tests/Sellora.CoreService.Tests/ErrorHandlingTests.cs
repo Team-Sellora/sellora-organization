@@ -7,6 +7,7 @@ namespace Sellora.CoreService.Tests;
 /// Verifies the global error handler returns a structured ProblemDetails response
 /// for unhandled exceptions, rather than an HTML error page or raw stack trace.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ErrorHandlingTests : IClassFixture<TestWebAppFactory>
 {
   private readonly TestWebAppFactory _factory;

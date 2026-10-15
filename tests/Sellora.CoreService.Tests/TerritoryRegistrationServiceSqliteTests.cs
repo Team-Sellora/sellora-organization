@@ -14,6 +14,7 @@ namespace Sellora.CoreService.Tests;
 /// relies on PostgreSQL constraint names and is covered by the PostgreSQL
 /// fixture tests.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class TerritoryRegistrationServiceSqliteTests : IDisposable
 {
   private static readonly Guid CompanyId = HierarchyEndpointTestData.CompanyId;

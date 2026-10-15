@@ -13,6 +13,7 @@ namespace Sellora.CoreService.Tests;
 /// Reporting lines are visibility-only metadata. They must never be used to
 /// calculate an Area Manager's hierarchy access scope.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class ReportingLineAccessScopeTests
   : IClassFixture<TestWebAppFactory>
 {

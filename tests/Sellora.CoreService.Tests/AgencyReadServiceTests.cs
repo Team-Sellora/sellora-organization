@@ -18,6 +18,7 @@ namespace Sellora.CoreService.Tests.Agencies;
 /// filters, but the point of this suite is end-to-end proof, which means
 /// exercising the same query the production request would.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class AgencyReadServiceTests
   : IClassFixture<PostgreSqlConstraintFixture>, IAsyncLifetime
 {

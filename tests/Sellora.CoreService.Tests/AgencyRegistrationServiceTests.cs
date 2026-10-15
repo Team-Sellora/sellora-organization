@@ -22,6 +22,7 @@ namespace Sellora.CoreService.Tests.Agencies;
 /// provider would silently pass a buggy implementation because it does
 /// not honour unique indexes.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class AgencyRegistrationServiceTests
   : IClassFixture<PostgreSqlConstraintFixture>, IAsyncLifetime
 {

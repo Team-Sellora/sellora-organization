@@ -17,6 +17,7 @@ namespace Sellora.CoreService.Tests;
 /// two-company test hierarchy. Uniqueness constraints are covered by the
 /// PostgreSQL tests; these cover the scoping and validation paths.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class AgencyServicesSqliteTests : IDisposable
 {
   private static readonly Guid CompanyId = HierarchyEndpointTestData.CompanyId;

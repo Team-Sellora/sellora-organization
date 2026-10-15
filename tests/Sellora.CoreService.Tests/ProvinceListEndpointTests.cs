@@ -16,6 +16,7 @@ namespace Sellora.CoreService.Tests;
 /// active agency/shop counts, scoped to the caller's company.
 /// The counts are asserted against the actual seeded data.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class ProvinceListEndpointTests
   : IClassFixture<TestWebAppFactory>
 {
