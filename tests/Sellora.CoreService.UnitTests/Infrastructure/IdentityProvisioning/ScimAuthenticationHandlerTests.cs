@@ -11,6 +11,7 @@ namespace Sellora.CoreService.Tests;
 /// Credentials added to SCIM2 calls: basic admin credentials for local
 /// development, otherwise a cached client-credentials token.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class ScimAuthenticationHandlerTests
 {
   [Fact]

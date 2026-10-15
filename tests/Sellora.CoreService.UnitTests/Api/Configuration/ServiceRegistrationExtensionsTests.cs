@@ -18,6 +18,7 @@ namespace Sellora.CoreService.Tests;
 /// Startup registrations: JWT validation settings per environment and the
 /// SCIM provisioning pipeline when (and only when) it is configured.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class ServiceRegistrationExtensionsTests
 {
   [Theory]

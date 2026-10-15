@@ -13,6 +13,7 @@ namespace Sellora.CoreService.Tests;
 /// sent, how each failure is reported, and that a half-created login is
 /// removed. Role IDs are cached per process, so each test uses its own role.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class Wso2ScimIdentityProvisionerTests
 {
   private const string UserId = "scim-user-1";

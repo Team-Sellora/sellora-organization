@@ -2,6 +2,7 @@ using Sellora.CoreService.Infrastructure.IdentityProvisioning;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class TemporaryPasswordGeneratorTests
 {
   [Fact]

@@ -19,6 +19,7 @@ namespace Sellora.CoreService.Tests;
 /// outcome and every hand-rolled validation branch is checked against the
 /// HTTP status it must map to — without needing data that provokes each one.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class ControllerOutcomeMappingTests
 {
   private static readonly Guid ProvinceId = Guid.NewGuid();

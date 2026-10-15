@@ -3,6 +3,7 @@ using Sellora.CoreService.Infrastructure.Kafka;
 
 namespace Sellora.CoreService.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class KafkaSaslConfiguratorTests
 {
   [Fact]
