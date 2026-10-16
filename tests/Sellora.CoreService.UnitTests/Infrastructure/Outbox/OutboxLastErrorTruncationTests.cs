@@ -13,9 +13,11 @@ namespace Sellora.CoreService.UnitTests.Infrastructure.Outbox;
 /// with 2000. Well under 2000 / exactly 2000 / 2001 / far over 2000.
 /// </para>
 /// <para>
-/// Boundary values: the condition is Length &gt; 2000, so it is checked on
-/// both sides. 2000 is the last length kept whole and 2001 is the first
-/// length cut.
+/// Boundary values: the condition is Length &gt; 2000. The 2000 row pins
+/// that exactly 2000 is kept unchanged and the 2001 row pins that 2001 is
+/// the first length cut. Changing &gt; to &gt;= is an equivalent mutant that
+/// no test can kill, because Substring(0, 2000) of a 2000 character string
+/// is the same string.
 /// </para>
 /// <para>
 /// Coverage criterion: Boundary Value Analysis on the 2000 limit plus one
