@@ -128,12 +128,14 @@ public sealed class BlockingOpenWorkWebAppFactory : TestWebAppFactory
 
   private sealed class BlockingOpenWorkChecker : IOpenWorkChecker
   {
+    private static readonly string[] BlockingReferences = { "ORDER-123" };
+
     public Task<OpenWorkResult> GetOpenWorkForTerritoryAsync(
       Guid territoryId,
       CancellationToken cancellationToken = default) =>
       Task.FromResult(
         new OpenWorkResult(
           HasOpenWork: true,
-          BlockingReferences: new[] { "ORDER-123" }));
+          BlockingReferences: BlockingReferences));
   }
 }

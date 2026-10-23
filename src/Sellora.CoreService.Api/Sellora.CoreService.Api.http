@@ -4,3 +4,19 @@ GET {{Sellora.CoreService.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Identity & scope: where does the caller sit?
+GET {{Sellora.CoreService.Api_HostAddress}}/api/me/scope
+Authorization: Bearer {{token}}
+
+### Add a staff member (Company Admin: any staff role; Agency Operator: SalesRep)
+POST {{Sellora.CoreService.Api_HostAddress}}/api/staff
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "SalesRep",
+  "displayName": "Nimal Perera",
+  "email": "nimal.perera@example.lk",
+  "phone": "0771234567"
+}

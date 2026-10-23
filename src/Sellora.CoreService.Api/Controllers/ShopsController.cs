@@ -224,16 +224,7 @@ public sealed class ShopsController : ControllerBase
       cancellationToken);
     return result.Outcome switch
     {
-      RegisterShopOutcome.Success => Created(
-        $"/api/shops/{result.Shop!.ShopId}",
-        new
-        {
-          result.Shop.ShopId,
-          result.Shop.TerritoryId,
-          result.Shop.Name,
-          result.Shop.Status,
-          result.Shop.CreatedAt
-        }),
+      RegisterShopOutcome.Success => ShopCreated(result),
 
       RegisterShopOutcome.CallerNotAnActiveAgencyOperator =>
         StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
@@ -263,6 +254,23 @@ public sealed class ShopsController : ControllerBase
         {
           Status = StatusCodes.Status400BadRequest,
           Title = "Missing shop owner identity",
+          Detail = result.Message
+        }),
+
+      RegisterShopOutcome.OwnerEmailAlreadyUsed => Conflict(
+        new ProblemDetails
+        {
+          Status = StatusCodes.Status409Conflict,
+          Title = "Shop Owner email already in use",
+          Detail = result.Message
+        }),
+
+      RegisterShopOutcome.IdentityProviderUnavailable => StatusCode(
+        StatusCodes.Status503ServiceUnavailable,
+        new ProblemDetails
+        {
+          Status = StatusCodes.Status503ServiceUnavailable,
+          Title = "Identity provider unavailable",
           Detail = result.Message
         }),
 
@@ -373,5 +381,26 @@ public sealed class ShopsController : ControllerBase
         Detail = result.Message
       })
     };
+  }
+
+  private CreatedResult ShopCreated(RegisterShopResult result)
+  {
+    if (result.OwnerLogin is not null)
+    {
+      // The body may carry a temporary password: never cache it.
+      Response.Headers.CacheControl = "no-store";
+    }
+
+    return Created(
+      $"/api/shops/{result.Shop!.ShopId}",
+      new
+      {
+        result.Shop.ShopId,
+        result.Shop.TerritoryId,
+        result.Shop.Name,
+        result.Shop.Status,
+        result.Shop.CreatedAt,
+        OwnerLogin = result.OwnerLogin
+      });
   }
 }

@@ -10,6 +10,7 @@ public static class RolePolicies
     public const string RequireSalesRep = "RequireSalesRep";
     public const string RequireShopOwner = "RequireShopOwner";
     public const string RequireHierarchyReader = "RequireHierarchyReader";
+    public const string RequireStaffManager = "RequireStaffManager";
 
     public static void AddSelloraRolePolicies(this AuthorizationOptions options)
     {
@@ -18,6 +19,10 @@ public static class RolePolicies
         options.AddPolicy(RequireAgencyOperator, p => p.RequireAssertion(HasRole("AgencyOperator")));
         options.AddPolicy(RequireSalesRep, p => p.RequireAssertion(HasRole("SalesRep")));
         options.AddPolicy(RequireShopOwner, p => p.RequireAssertion(HasRole("ShopOwner")));
+        // Adding staff: Company Admins (any staff role) and Agency Operators
+        // (sales reps). The service enforces which role each may create.
+        options.AddPolicy(RequireStaffManager, p => p.RequireAssertion(HasAnyRole(
+            "CompanyAdmin", "AgencyOperator")));
         options.AddPolicy(RequireHierarchyReader, p => p.RequireAssertion(HasAnyRole(
             "CompanyAdmin", "AreaManager", "AgencyOperator", "SalesRep", "ShopOwner")));
     }

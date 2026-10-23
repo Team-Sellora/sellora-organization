@@ -10,6 +10,7 @@ namespace Sellora.CoreService.Infrastructure.Persistence.Seeding;
 public static class DevelopmentOrganizationSeeder
 {
   private const string TenantCode = "SELLORA-DEMO";
+  private const string SeedActor = "development-seed";
 
   private static readonly DateTimeOffset SeededAt =
     new(
@@ -275,7 +276,7 @@ public static class DevelopmentOrganizationSeeder
       ReportsToAdminId =
         DevelopmentOrganizationSeedIds.CompanyAdminId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -296,7 +297,7 @@ public static class DevelopmentOrganizationSeeder
       ReportsToAdminId =
         DevelopmentOrganizationSeedIds.CompanyAdminId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -315,7 +316,7 @@ public static class DevelopmentOrganizationSeeder
       OperatorId =
         DevelopmentOrganizationSeedIds.ColomboOperatorId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -334,7 +335,7 @@ public static class DevelopmentOrganizationSeeder
       OperatorId =
         DevelopmentOrganizationSeedIds.KandyOperatorId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -353,7 +354,7 @@ public static class DevelopmentOrganizationSeeder
       AgencyId =
         DevelopmentOrganizationSeedIds.ColomboAgencyId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -372,7 +373,7 @@ public static class DevelopmentOrganizationSeeder
       AgencyId =
         DevelopmentOrganizationSeedIds.KandyAgencyId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -391,7 +392,7 @@ public static class DevelopmentOrganizationSeeder
       SalesRepId =
         DevelopmentOrganizationSeedIds.ColomboSalesRepId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 
@@ -410,7 +411,7 @@ public static class DevelopmentOrganizationSeeder
       SalesRepId =
         DevelopmentOrganizationSeedIds.KandySalesRepId,
       StartsAt = SeededAt,
-      CreatedBy = "development-seed"
+      CreatedBy = SeedActor
     };
   }
 

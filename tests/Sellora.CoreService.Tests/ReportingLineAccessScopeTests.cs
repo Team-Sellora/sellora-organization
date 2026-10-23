@@ -144,17 +144,17 @@ public sealed class ReportingLineAccessScopeTests
     return staffProfileId;
   }
 
-  private static IReadOnlyList<Guid> ProvinceIds(HierarchyTreeResponse hierarchy) =>
+  private static List<Guid> ProvinceIds(HierarchyTreeResponse hierarchy) =>
     hierarchy.Provinces.Select(province => province.ProvinceId).Order().ToList();
 
-  private static IReadOnlyList<Guid> AgencyIds(HierarchyTreeResponse hierarchy) =>
+  private static List<Guid> AgencyIds(HierarchyTreeResponse hierarchy) =>
     hierarchy.Provinces
       .SelectMany(province => province.Agencies)
       .Select(agency => agency.AgencyId)
       .Order()
       .ToList();
 
-  private static IReadOnlyList<Guid> TerritoryIds(HierarchyTreeResponse hierarchy) =>
+  private static List<Guid> TerritoryIds(HierarchyTreeResponse hierarchy) =>
     hierarchy.Provinces
       .SelectMany(province => province.Agencies.SelectMany(agency => agency.Territories))
       .Concat(hierarchy.Provinces.SelectMany(province => province.UnassignedTerritories))

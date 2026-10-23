@@ -74,14 +74,15 @@ internal static class HierarchyTreeBuilder
               shop.Address,
               shop.Latitude,
               shop.Longitude,
-              shop.CreditLimit))
+              shop.CreditLimit,
+              shop.OwnerEmail))
             .ToList());
   }
 
   private static TerritoryHierarchyNode
     CreateTerritoryNode(
       Territory territory,
-      IReadOnlyDictionary<
+      Dictionary<
         Guid,
         IReadOnlyList<ShopHierarchyNode>> shopsByTerritory)
   {
@@ -101,7 +102,7 @@ internal static class HierarchyTreeBuilder
     IReadOnlyList<TerritoryHierarchyNode>>
     BuildAgencyTerritoryLookup(
       IEnumerable<TerritoryAgencyAssignment> assignments,
-      IReadOnlyDictionary<
+      Dictionary<
         Guid,
         TerritoryHierarchyNode> territoryNodes)
   {
@@ -125,7 +126,7 @@ internal static class HierarchyTreeBuilder
     IReadOnlyList<AgencyHierarchyNode>>
     BuildProvinceAgencyLookup(
       IEnumerable<Agency> agencies,
-      IReadOnlyDictionary<
+      Dictionary<
         Guid,
         IReadOnlyList<TerritoryHierarchyNode>>
           territoriesByAgency)
@@ -147,7 +148,8 @@ internal static class HierarchyTreeBuilder
                 agency.AgencyId,
                 agency.Name,
                 territories ??
-                  Array.Empty<TerritoryHierarchyNode>());
+                  Array.Empty<TerritoryHierarchyNode>(),
+                agency.Email);
             })
             .ToList());
   }
@@ -157,10 +159,10 @@ internal static class HierarchyTreeBuilder
     IReadOnlyList<TerritoryHierarchyNode>>
     BuildUnassignedTerritoryLookup(
       IEnumerable<Territory> territories,
-      IReadOnlyDictionary<
+      Dictionary<
         Guid,
         TerritoryHierarchyNode> territoryNodes,
-      IReadOnlyDictionary<Guid, Guid> agencyIdByTerritory)
+      Dictionary<Guid, Guid> agencyIdByTerritory)
   {
     return territories
       .Where(territory =>
@@ -179,11 +181,11 @@ internal static class HierarchyTreeBuilder
 
   private static ProvinceHierarchyNode CreateProvinceNode(
     Province province,
-    IReadOnlyDictionary<
+    Dictionary<
       Guid,
       IReadOnlyList<AgencyHierarchyNode>>
         agenciesByProvince,
-    IReadOnlyDictionary<
+    Dictionary<
       Guid,
       IReadOnlyList<TerritoryHierarchyNode>>
         unassignedByProvince)

@@ -154,6 +154,7 @@ public static class HierarchyEndpointTestData
         CompanyId = CompanyId,
         ProvinceId = NorthProvinceId,
         Name = "North Agency",
+        Email = "north@agency.test",
         Status = HierarchyStatus.Active,
         CreatedAt = now
       },
@@ -314,6 +315,7 @@ public static class HierarchyEndpointTestData
       TerritoryId = territoryId,
       Name = name,
       OwnerName = name,
+      OwnerEmail = $"owner-{id:N}@shop.test",
       OwnerIdentitySub = ownerSubject,
       Address = "123 Test Road",
       Latitude = 6.927079m,

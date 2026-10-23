@@ -152,6 +152,22 @@ public sealed class ShopUpdateService : IShopUpdateService
     shop.CreditLimit = request.CreditLimit;
     shop.UpdatedAt = now;
 
+    _outboxWriter.Enqueue(
+      _hierarchyEventFactory.ShopUpdated(
+        shop,
+        agencyId,
+        ChangedFields(coordinatesChanged, creditLimitChanged)));
+
+    await _db.SaveChangesAsync(cancellationToken);
+    await transaction.CommitAsync(cancellationToken);
+
+    return UpdateShopResult.Success(shop);
+  }
+
+  private static List<string> ChangedFields(
+    bool coordinatesChanged,
+    bool creditLimitChanged)
+  {
     var changedFields = new List<string>();
 
     if (coordinatesChanged)
@@ -165,15 +181,6 @@ public sealed class ShopUpdateService : IShopUpdateService
       changedFields.Add("creditLimit");
     }
 
-    _outboxWriter.Enqueue(
-      _hierarchyEventFactory.ShopUpdated(
-        shop,
-        agencyId,
-        changedFields));
-
-    await _db.SaveChangesAsync(cancellationToken);
-    await transaction.CommitAsync(cancellationToken);
-
-    return UpdateShopResult.Success(shop);
+    return changedFields;
   }
 }

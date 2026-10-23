@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Sellora.CoreService.Application.Identity;
+using Sellora.CoreService.Application.IdentityProvisioning;
 using Sellora.CoreService.Application.Shops;
 using Sellora.CoreService.Domain.Entities;
 using Sellora.CoreService.Domain.Identity;
@@ -14,54 +15,28 @@ public sealed class ShopRegistrationService : IShopRegistrationService
   private readonly ICurrentUserContext _currentUser;
   private readonly IOutboxWriter _outboxWriter;
   private readonly IHierarchyEventFactory _hierarchyEventFactory;
+  private readonly IIdentityProvisioner _provisioner;
   public ShopRegistrationService(
     CoreDbContext db,
     ICurrentUserContext currentUser,
     IOutboxWriter outboxWriter,
-    IHierarchyEventFactory hierarchyEventFactory)
+    IHierarchyEventFactory hierarchyEventFactory,
+    IIdentityProvisioner provisioner)
   {
     _db = db;
     _currentUser = currentUser;
     _outboxWriter = outboxWriter;
     _hierarchyEventFactory = hierarchyEventFactory;
+    _provisioner = provisioner;
   }
 
   public async Task<RegisterShopResult> RegisterAsync(
     RegisterShopRequest request,
     CancellationToken cancellationToken = default)
   {
-    var subject = _currentUser.Subject;
+    var operatorAgencyIds = await FindCallerAgencyIdsAsync(cancellationToken);
 
-    if (string.IsNullOrWhiteSpace(subject))
-    {
-      return RegisterShopResult.CallerNotAnActiveAgencyOperator();
-    }
-
-    // Resolve the token subject to the current StaffProfile. This is a
-    // database lookup on every request, rather than trusting an agency ID
-    // that may have become stale after the token was issued.
-    var operatorProfile = await _db.StaffProfiles
-      .SingleOrDefaultAsync(
-        profile =>
-          profile.IdentitySub == subject &&
-          profile.Role == Roles.AgencyOperator &&
-          profile.Status == HierarchyStatus.Active,
-        cancellationToken);
-
-    if (operatorProfile is null)
-    {
-      return RegisterShopResult.CallerNotAnActiveAgencyOperator();
-    }
-
-    var operatorAgencyIds = await _db.AgencyOperatorAssignments
-      .Where(assignment =>
-        assignment.OperatorId == operatorProfile.StaffProfileId &&
-        assignment.EndsAt == null)
-      .Select(assignment => assignment.AgencyId)
-      .Distinct()
-      .ToListAsync(cancellationToken);
-
-    if (operatorAgencyIds.Count == 0)
+    if (operatorAgencyIds is null)
     {
       return RegisterShopResult.CallerNotAnActiveAgencyOperator();
     }
@@ -103,23 +78,46 @@ public sealed class ShopRegistrationService : IShopRegistrationService
       .Select(assignment => assignment.AgencyId)
       .SingleAsync(cancellationToken);
 
-    if (string.IsNullOrWhiteSpace(request.OwnerIdentitySub))
+    // Normally the Shop Owner's login is created here from their email, so
+    // nobody copies an identity ID by hand. An existing login can still be
+    // linked by passing ownerIdentitySub explicitly.
+    var ownerEmail = string.IsNullOrWhiteSpace(request.OwnerEmail)
+      ? null
+      : request.OwnerEmail.Trim().ToLowerInvariant();
+    var explicitSub = string.IsNullOrWhiteSpace(request.OwnerIdentitySub)
+      ? null
+      : request.OwnerIdentitySub.Trim();
+
+    if (explicitSub is null && ownerEmail is null)
     {
       return RegisterShopResult.OwnerIdentitySubRequired();
     }
 
-    var ownerIdentitySub = request.OwnerIdentitySub.Trim();
+    if (explicitSub is not null &&
+        await _db.Shops.AnyAsync(shop => shop.OwnerIdentitySub == explicitSub, cancellationToken))
+    {
+      return RegisterShopResult.OwnerIdentityAlreadyLinked(explicitSub);
+    }
 
-    var ownerIdentityAlreadyLinked = await _db.Shops
-      .AnyAsync(
-        shop => shop.OwnerIdentitySub == ownerIdentitySub,
+    ProvisionedIdentity? provisioned = null;
+
+    if (explicitSub is null)
+    {
+      var provisioning = await ProvisionOwnerAsync(
+        request,
+        ownerEmail!,
+        territory.CompanyId,
         cancellationToken);
 
-    if (ownerIdentityAlreadyLinked)
-    {
-      return RegisterShopResult.OwnerIdentityAlreadyLinked(
-        ownerIdentitySub);
+      if (provisioning.Failure is not null)
+      {
+        return provisioning.Failure;
+      }
+
+      provisioned = provisioning.Identity;
     }
+
+    var ownerIdentitySub = explicitSub ?? provisioned!.IdentityId;
 
     var shop = new Shop
     {
@@ -129,7 +127,7 @@ public sealed class ShopRegistrationService : IShopRegistrationService
       Name = request.Name.Trim(),
       OwnerName = request.OwnerName?.Trim(),
       OwnerIdentitySub = ownerIdentitySub,
-      OwnerEmail = request.OwnerEmail?.Trim(),
+      OwnerEmail = ownerEmail,
       OwnerPhone = request.OwnerPhone?.Trim(),
       Address = request.Address.Trim(),
       Latitude = request.Latitude,
@@ -144,8 +142,101 @@ public sealed class ShopRegistrationService : IShopRegistrationService
     _outboxWriter.Enqueue(
       _hierarchyEventFactory.ShopRegistered(shop, agencyId));
 
-    await _db.SaveChangesAsync(cancellationToken);
+    await SaveOrRemoveProvisionedOwnerAsync(provisioned);
 
-    return RegisterShopResult.Success(shop);
+    return RegisterShopResult.Success(
+      shop,
+      provisioned is null
+        ? null
+        : new ProvisionedShopOwner(provisioned.IdentityId, provisioned.UserName, provisioned.TemporaryPassword));
+  }
+
+  /// <summary>
+  /// Agencies the caller currently operates, or null when the caller is not
+  /// an active Agency Operator with at least one active agency assignment.
+  /// </summary>
+  private async Task<List<Guid>?> FindCallerAgencyIdsAsync(
+    CancellationToken cancellationToken)
+  {
+    var subject = _currentUser.Subject;
+
+    if (string.IsNullOrWhiteSpace(subject))
+    {
+      return null;
+    }
+
+    // Resolve the token subject to the current StaffProfile. This is a
+    // database lookup on every request, rather than trusting an agency ID
+    // that may have become stale after the token was issued.
+    var operatorProfile = await _db.StaffProfiles
+      .SingleOrDefaultAsync(
+        profile =>
+          profile.IdentitySub == subject &&
+          profile.Role == Roles.AgencyOperator &&
+          profile.Status == HierarchyStatus.Active,
+        cancellationToken);
+
+    if (operatorProfile is null)
+    {
+      return null;
+    }
+
+    var operatorAgencyIds = await _db.AgencyOperatorAssignments
+      .Where(assignment =>
+        assignment.OperatorId == operatorProfile.StaffProfileId &&
+        assignment.EndsAt == null)
+      .Select(assignment => assignment.AgencyId)
+      .Distinct()
+      .ToListAsync(cancellationToken);
+
+    return operatorAgencyIds.Count == 0 ? null : operatorAgencyIds;
+  }
+
+  private async Task<(ProvisionedIdentity? Identity, RegisterShopResult? Failure)>
+    ProvisionOwnerAsync(
+      RegisterShopRequest request,
+      string ownerEmail,
+      Guid companyId,
+      CancellationToken cancellationToken)
+  {
+    try
+    {
+      var identity = await _provisioner.CreateUserAsync(
+        new NewIdentityUser(
+          ownerEmail,
+          string.IsNullOrWhiteSpace(request.OwnerName) ? request.Name.Trim() : request.OwnerName.Trim(),
+          request.OwnerPhone,
+          Roles.ShopOwner,
+          companyId),
+        cancellationToken);
+
+      return (identity, null);
+    }
+    catch (IdentityUserAlreadyExistsException)
+    {
+      return (null, RegisterShopResult.OwnerEmailAlreadyUsed(ownerEmail));
+    }
+    catch (IdentityProvisioningUnavailableException exception)
+    {
+      return (null, RegisterShopResult.IdentityProviderUnavailable(exception.Message));
+    }
+  }
+
+  private async Task SaveOrRemoveProvisionedOwnerAsync(
+    ProvisionedIdentity? provisioned)
+  {
+    try
+    {
+      await _db.SaveChangesAsync(CancellationToken.None);
+    }
+    catch
+    {
+      if (provisioned is not null)
+      {
+        await _provisioner.DeleteUserAsync(provisioned.IdentityId, CancellationToken.None);
+      }
+
+      throw;
+    }
   }
 }
